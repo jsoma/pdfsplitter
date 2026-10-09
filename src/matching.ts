@@ -100,6 +100,28 @@ function hammingSimilarity(left: Signature, right: Signature): number {
   return (equal / SIGNATURE_BITS) * 100;
 }
 
+function packedSignature(signature: Signature): Uint32Array {
+  const words = new Uint32Array(SIGNATURE_BITS / 32);
+  for (let index = 0; index < SIGNATURE_BITS; index += 1) {
+    if (signature[index] === 1) words[index >>> 5] |= 1 << (index & 31);
+  }
+  return words;
+}
+
+function populationCount(value: number): number {
+  value -= (value >>> 1) & 0x55555555;
+  value = (value & 0x33333333) + ((value >>> 2) & 0x33333333);
+  return (((value + (value >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
+}
+
+function packedSimilarity(left: Uint32Array, right: Uint32Array): number {
+  let different = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    different += populationCount(left[index] ^ right[index]);
+  }
+  return ((SIGNATURE_BITS - different) / SIGNATURE_BITS) * 100;
+}
+
 export function similarity(left: Signature, right: Signature): number {
   return hammingSimilarity(
     checkedSignature(left, 'left signature'),
@@ -210,9 +232,16 @@ function pageMap(pages: PageInfo[], pageCount: number): Map<number, PageInfo> {
   return result;
 }
 
+function signatureMap(pages: Map<number, PageInfo>): Map<number, Uint32Array> {
+  return new Map([...pages].map(([number, page]) => [
+    number,
+    packedSignature(checkedSignature(page.signature, `signature for page ${number}`)),
+  ]));
+}
+
 function startKinds(
   confirmed: Set<number>,
-  pages: Map<number, PageInfo>,
+  signatures: Map<number, Uint32Array>,
 ): { kinds: number[][]; kindByPage: Map<number, number> } {
   const ordered = [...confirmed].sort((left, right) => left - right);
   const parent = new Map(ordered.map((page) => [page, page]));
@@ -229,19 +258,16 @@ function startKinds(
   };
 
   for (let leftIndex = 0; leftIndex < ordered.length; leftIndex += 1) {
-    const leftPage = pages.get(ordered[leftIndex]);
-    if (!leftPage) continue;
-    const leftSignature = checkedSignature(leftPage.signature, `signature for page ${leftPage.number}`);
+    const leftPage = ordered[leftIndex];
+    const leftSignature = signatures.get(leftPage);
+    if (!leftSignature) continue;
     for (let rightIndex = leftIndex + 1; rightIndex < ordered.length; rightIndex += 1) {
-      const rightPage = pages.get(ordered[rightIndex]);
-      if (!rightPage) continue;
-      const rightSignature = checkedSignature(
-        rightPage.signature,
-        `signature for page ${rightPage.number}`,
-      );
-      if (hammingSimilarity(leftSignature, rightSignature) >= KIND_SIMILARITY) {
-        const leftRoot = find(leftPage.number);
-        const rightRoot = find(rightPage.number);
+      const rightPage = ordered[rightIndex];
+      const rightSignature = signatures.get(rightPage);
+      if (!rightSignature) continue;
+      if (packedSimilarity(leftSignature, rightSignature) >= KIND_SIMILARITY) {
+        const leftRoot = find(leftPage);
+        const rightRoot = find(rightPage);
         if (leftRoot !== rightRoot) parent.set(rightRoot, leftRoot);
       }
     }
@@ -293,6 +319,7 @@ export function matchPages({
   }
 
   const byNumber = pageMap(pages, pageCount);
+  const signatures = signatureMap(byNumber);
   const confirmedPages = pageSet(confirmed, pageCount, 'confirmed');
   const rejectedPages = pageSet(rejected, pageCount, 'rejected');
   confirmedPages.add(1);
@@ -303,18 +330,18 @@ export function matchPages({
     }
   }
 
-  const { kinds, kindByPage } = startKinds(confirmedPages, byNumber);
+  const { kinds, kindByPage } = startKinds(confirmedPages, signatures);
   const confirmedWithSignatures = [...confirmedPages]
     .sort((left, right) => left - right)
     .flatMap((page) => {
-      const info = byNumber.get(page);
-      return info ? [{ page, signature: checkedSignature(info.signature, `signature for page ${page}`) }] : [];
+      const signature = signatures.get(page);
+      return signature ? [{ page, signature }] : [];
     });
   const rejectedSignatures = [...rejectedPages]
     .sort((left, right) => left - right)
     .flatMap((page) => {
-      const info = byNumber.get(page);
-      return info ? [checkedSignature(info.signature, `signature for page ${page}`)] : [];
+      const signature = signatures.get(page);
+      return signature ? [signature] : [];
     });
   const preparedPhrases = preparePhrases(phrases);
 
@@ -329,11 +356,11 @@ export function matchPages({
     let kind = kindByPage.get(page) ?? null;
     let vetoed = false;
 
-    if (method === 'visual' && info && confirmedWithSignatures.length > 0) {
-      const signature = checkedSignature(info.signature, `signature for page ${page}`);
+    const signature = signatures.get(page);
+    if (method === 'visual' && signature && confirmedWithSignatures.length > 0) {
       let positive = -1;
       for (const anchor of confirmedWithSignatures) {
-        const candidate = hammingSimilarity(signature, anchor.signature);
+        const candidate = packedSimilarity(signature, anchor.signature);
         if (candidate > positive || (candidate === positive
           && (closest == null || anchor.page < closest))) {
           positive = candidate;
@@ -343,7 +370,7 @@ export function matchPages({
       score = Math.round(positive * 10) / 10;
       kind = kindByPage.get(closest!) ?? null;
       vetoed = rejectedSignatures.some(
-        (negative) => hammingSimilarity(signature, negative) >= positive,
+        (negative) => packedSimilarity(signature, negative) >= positive,
       );
     }
 
