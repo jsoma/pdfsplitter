@@ -107,6 +107,10 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await expect(review.getByRole('button', { name: 'Previous review page' })).toBeDisabled();
   await expect(review.getByRole('button', { name: 'Skip to next review page' })).toBeDisabled();
   await review.getByRole('button', { name: 'Yes, starts here' }).click();
+  await page.getByRole('button', { name: 'Page 3, document start', exact: true }).click();
+  await review.getByRole('button', { name: 'Undo last decision' }).click();
+  await expect(review.getByRole('button', { name: 'View page 3 large', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Page 3, document start', exact: true })).toBeVisible();
   await page.getByRole('tab', { name: 'Text', exact: true }).click();
 
   await page.getByRole('button', { name: 'Continue to download' }).click();

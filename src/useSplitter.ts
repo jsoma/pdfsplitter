@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { openPdf, type PdfSource } from './pdf';
 import { exportPdf, exportZip } from './export';
 import { matchPages, splitRanges } from './matching';
-import type { Method, OutputDocument, PageInfo, PageLabel, PhraseRule, Progress, SplitterController } from './types';
+import type { Method, OutputDocument, PageInfo, PageLabel, PhraseRule, Progress, SplitterController, UndoResult } from './types';
 
 type Decisions = { confirmed: number[]; rejected: number[] };
 type PreviewSession = {
@@ -137,12 +137,13 @@ export function useSplitter(): SplitterController {
       return [...previous, { ...last, confirmed: [...new Set([...last.confirmed, ...matches.suggested])].sort((a, b) => a - b) }];
     });
   }, [matches.suggested]);
-  const undo = useCallback((): number | null => {
+  const undo = useCallback((): UndoResult | null => {
     if (history.length <= 1) return null;
     const current = history[history.length - 1];
     const restored = history[history.length - 2];
     setHistory(history.slice(0, -1));
-    return changedDecisionPage(current, restored);
+    const page = changedDecisionPage(current, restored);
+    return page == null ? null : { page, ...restored };
   }, [history]);
   const cancelExport = useCallback(() => exportingJob.current?.abort(), []);
 

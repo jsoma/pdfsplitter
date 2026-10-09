@@ -4,7 +4,7 @@ import { LargePageView } from './LargePageView';
 import { MethodPanel } from './MethodPanel';
 import { PageImage } from './PagePreview';
 import { splitRanges } from '../matching';
-import type { PageInfo, PageMatch, SplitterController } from '../types';
+import type { PageInfo, PageMatch, SplitterController, UndoResult } from '../types';
 
 type ReviewTab = 'unsure' | 'suggested';
 type PreviewDocument = { index: number; start: number; end: number; kind: 'confirmed' | 'suggested' };
@@ -73,13 +73,14 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   const [tab, setTab] = useState<ReviewTab>('unsure');
   const [index, setIndex] = useState(0);
   const [referenceSeen, setReferenceSeen] = useState(false);
-  const [restoredPage, setRestoredPage] = useState<number | null>(null);
+  const [restoredPage, setRestoredPage] = useState<UndoResult | null>(null);
   const suggestedQueue = [...new Set(controller.matches.suggested)].sort((left, right) => left - right);
   const suggestedSet = new Set(suggestedQueue);
   const remainingUnsure = [...new Set(controller.matches.unsure)].filter((page) => !suggestedSet.has(page)).sort((left, right) => left - right);
   const reviewQueue = [...suggestedQueue, ...remainingUnsure];
   const activeQueue = tab === 'unsure' ? reviewQueue : suggestedQueue;
-  const pendingRestoredPage = restoredPage != null && !controller.confirmed.includes(restoredPage) && !controller.rejected.includes(restoredPage) ? restoredPage : null;
+  // Keep the undone page selected until another decision replaces this history snapshot.
+  const pendingRestoredPage = restoredPage?.confirmed === controller.confirmed && restoredPage?.rejected === controller.rejected ? restoredPage.page : null;
   const queue = pendingRestoredPage != null && !activeQueue.includes(pendingRestoredPage) ? [pendingRestoredPage, ...activeQueue] : activeQueue;
   const restoredIndex = pendingRestoredPage == null ? -1 : queue.indexOf(pendingRestoredPage);
   const safeIndex = Math.min(restoredIndex >= 0 ? restoredIndex : index, Math.max(0, queue.length - 1));
