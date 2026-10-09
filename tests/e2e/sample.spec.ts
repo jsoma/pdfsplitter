@@ -64,8 +64,22 @@ test('bundled sample demonstrates text matching and exports eight documents', as
   const footer = page.locator('.app-footer');
   await footer.getByRole('button', { name: 'Accept all 7 suggestions' }).click();
   await expect(page.getByText('8 marked · 0 to review (0 suggested)', { exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Undo last decision' }).click();
+  await expect(review.getByRole('button', { name: 'View page 4 large', exact: true })).toBeVisible();
+  await footer.getByRole('button', { name: 'Accept all 7 suggestions' }).click();
   await page.getByRole('button', { name: 'Continue to download' }).click();
   await expect(page.getByRole('heading', { name: '8 documents' })).toBeVisible();
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'Open document 1 as PDF', exact: true }).click();
+  const popup = await popupPromise;
+  await expect.poll(() => popup.url()).toMatch(/^blob:/);
+  const preview = await page.evaluate(async (url) => {
+    const response = await fetch(url);
+    return { type: response.headers.get('content-type'), bytes: [...new Uint8Array(await response.arrayBuffer())] };
+  }, popup.url());
+  expect(preview.type).toBe('application/pdf');
+  expect((await PDFDocument.load(new Uint8Array(preview.bytes))).getPageCount()).toBe(3);
+  await popup.close();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download all as ZIP' }).click();

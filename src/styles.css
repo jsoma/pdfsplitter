@@ -67,7 +67,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .inspect-sidebar { padding: 28px 26px; border-right: 1px solid #e7dfd8; background: #fbf9f6; }
 .section-heading { display: flex; gap: 11px; }
 .section-heading > svg { flex: none; margin-top: 3px; color: var(--indigo); }
-.section-heading h2 { margin: 0 0 6px; font: 500 25px/1.2 Georgia,serif; }
+.section-heading h2 { margin: 0 0 6px; font-size: 23px; font-weight: 600; line-height: 1.2; }
 .section-heading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .text-availability { margin: 26px 0 30px; padding: 15px; border: 1px solid #e2dad2; border-radius: 9px; background: white; }
 .text-availability > span, .text-availability > strong { display: block; }
@@ -200,7 +200,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .large-dialog::backdrop { background: rgba(33,28,25,.58); }
 .large-dialog > header { min-height: 65px; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid #e5ddd6; }
 .large-dialog > header > div { display: flex; align-items: center; gap: 10px; }
-.large-dialog h2 { margin: 0; font: 500 23px Georgia,serif; }
+.large-dialog h2 { margin: 0; font-size: 22px; font-weight: 600; }
 .status-pill.confirmed, .status-pill.suggested { color: var(--indigo-dark); background: var(--indigo-soft); }
 .status-pill.unsure { color: var(--amber); background: var(--amber-soft); }
 .large-body { min-height: 0; flex: 1; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 25px; overflow: auto; background: #f2eeea; }
