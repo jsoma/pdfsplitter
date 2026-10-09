@@ -8,6 +8,8 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
+    // Full Chromium includes the PDF viewer; headless-shell treats PDFs as downloads.
+    channel: 'chromium',
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
   },

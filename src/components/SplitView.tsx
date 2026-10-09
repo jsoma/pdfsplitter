@@ -79,8 +79,9 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   const remainingUnsure = [...new Set(controller.matches.unsure)].filter((page) => !suggestedSet.has(page)).sort((left, right) => left - right);
   const reviewQueue = [...suggestedQueue, ...remainingUnsure];
   const activeQueue = tab === 'unsure' ? reviewQueue : suggestedQueue;
-  const queue = restoredPage != null && !activeQueue.includes(restoredPage) ? [restoredPage, ...activeQueue] : activeQueue;
-  const restoredIndex = restoredPage == null ? -1 : queue.indexOf(restoredPage);
+  const pendingRestoredPage = restoredPage != null && !controller.confirmed.includes(restoredPage) && !controller.rejected.includes(restoredPage) ? restoredPage : null;
+  const queue = pendingRestoredPage != null && !activeQueue.includes(pendingRestoredPage) ? [pendingRestoredPage, ...activeQueue] : activeQueue;
+  const restoredIndex = pendingRestoredPage == null ? -1 : queue.indexOf(pendingRestoredPage);
   const safeIndex = Math.min(restoredIndex >= 0 ? restoredIndex : index, Math.max(0, queue.length - 1));
   const showReference = !referenceSeen;
   const candidate = showReference ? 1 : queue[safeIndex];

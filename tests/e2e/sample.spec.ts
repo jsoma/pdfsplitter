@@ -67,6 +67,7 @@ test('bundled sample demonstrates text matching and exports eight documents', as
   await review.getByRole('button', { name: 'Undo last decision' }).click();
   await expect(review.getByRole('button', { name: 'View page 4 large', exact: true })).toBeVisible();
   await footer.getByRole('button', { name: 'Accept all 7 suggestions' }).click();
+  await expect(review.getByText('No unsure pages left.')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to download' }).click();
   await expect(page.getByRole('heading', { name: '8 documents' })).toBeVisible();
   const popupPromise = page.waitForEvent('popup');
