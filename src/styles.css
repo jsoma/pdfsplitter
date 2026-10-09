@@ -106,8 +106,14 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .zoom-control input { width: 78px; accent-color: var(--indigo); }
 .grid-area { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0,1fr) 66px; overflow: hidden; }
 .page-grid { min-height: 0; display: grid; grid-template-columns: repeat(auto-fill,minmax(calc(var(--page-width) + 22px),1fr)); align-content: start; gap: 7px 4px; padding: 13px 8px 26px; overflow: auto; background: #f2eee8; }
-.page-tile { --page-width: 72px; position: relative; min-width: 0; min-height: calc(var(--page-width) * 1.43 + 28px); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 6px 4px 5px; border-radius: 5px; background: rgba(255,255,255,.5); }
+.page-tile { --page-width: 72px; position: relative; min-width: 0; min-height: calc(var(--page-width) * 1.43 + 40px); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 4px; border-radius: 5px; background: rgba(255,255,255,.5); }
 .page-tile.confirmed { background: #e8e8ff; }
+.page-tile.doc-tone-indigo { background: #ededff; }
+.page-tile.doc-tone-sand { background: #f4eee7; }
+.doc-label { width: var(--page-width); height: 13px; overflow: hidden; color: var(--indigo-dark); font-size: 9px; font-weight: 750; line-height: 12px; white-space: nowrap; }
+.doc-kind-suggested .doc-label { color: #696bd2; }
+.doc-connector { position: absolute; left: 0; top: calc(18px + var(--page-width) * .66); width: calc((100% - var(--page-width)) / 2 + 2px); border-top: 2px solid var(--indigo); pointer-events: none; }
+.doc-kind-suggested .doc-connector { border-top-style: dashed; border-color: #999be7; }
 .page-target { width: var(--page-width); height: calc(var(--page-width) * 1.32); padding: 0; overflow: hidden; border: 1px solid #d6cec7; background: white; box-shadow: 0 2px 5px rgba(47,39,32,.1); cursor: pointer; }
 .page-target .page-image { width: 100%; height: 100%; display: block; object-fit: contain; background: white; }
 .page-tile.confirmed .page-target { border: 2px solid var(--indigo); }
@@ -118,7 +124,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .page-tag { position: absolute; right: max(3px,calc((100% - var(--page-width))/2)); bottom: 4px; font-size: 9px; font-weight: 750; }
 .page-tag.confirmed, .page-tag.suggested { color: var(--indigo-dark); }
 .page-tag.unsure { color: var(--amber); }
-.tile-actions { position: absolute; z-index: 1; top: 9px; right: max(7px,calc((100% - var(--page-width))/2 + 3px)); display: flex; flex-direction: column; gap: 3px; opacity: 0; transform: translateY(-2px); transition: .12s; pointer-events: none; }
+.tile-actions { position: absolute; z-index: 1; top: 21px; right: max(7px,calc((100% - var(--page-width))/2 + 3px)); display: flex; flex-direction: column; gap: 3px; opacity: 0; transform: translateY(-2px); transition: .12s; pointer-events: none; }
 .page-tile:hover .tile-actions, .page-tile:focus-within .tile-actions { opacity: 1; transform: none; pointer-events: auto; }
 .tile-actions button { width: 22px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 4px; background: white; box-shadow: 0 1px 4px rgba(40,30,20,.35); cursor: pointer; }
 .tile-actions button.mark { color: var(--green); }

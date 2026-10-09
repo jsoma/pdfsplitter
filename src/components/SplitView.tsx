@@ -3,12 +3,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { LargePageView } from './LargePageView';
 import { MethodPanel } from './MethodPanel';
 import { PageImage } from './PagePreview';
+import { splitRanges } from '../matching';
 import type { PageInfo, PageMatch, SplitterController } from '../types';
 
 type ReviewTab = 'unsure' | 'suggested';
+type PreviewDocument = { index: number; start: number; end: number; kind: 'confirmed' | 'suggested' };
 const sizes = [56, 72, 96, 126];
 
-function PageTile({ controller, page, match, size, onLarge }: { controller: SplitterController; page: PageInfo; match?: PageMatch; size: number; onLarge: () => void }) {
+function buildPreviewDocuments(controller: SplitterController) {
+  const confirmed = new Set(controller.confirmed);
+  const starts = [...new Set([...controller.confirmed, ...controller.matches.suggested])];
+  const documents = splitRanges(controller.pageCount, starts, controller.filename);
+  const byPage = new Map<number, PreviewDocument>();
+  documents.forEach((document, index) => {
+    const preview = { index: index + 1, start: document.start, end: document.end, kind: confirmed.has(document.start) ? 'confirmed' : 'suggested' } as const;
+    for (let page = document.start; page <= document.end; page += 1) byPage.set(page, preview);
+  });
+  return byPage;
+}
+
+function PageTile({ controller, page, match, size, document, showConnector, onLarge }: { controller: SplitterController; page: PageInfo; match?: PageMatch; size: number; document: PreviewDocument; showConnector: boolean; onLarge: () => void }) {
   const confirmed = controller.confirmed.includes(page.number);
   const suggested = controller.matches.suggested.includes(page.number);
   const unsure = controller.matches.unsure.includes(page.number);
@@ -21,7 +35,9 @@ function PageTile({ controller, page, match, size, onLarge }: { controller: Spli
   };
 
   return (
-    <article className={`page-tile ${status}`} style={{ '--page-width': `${size}px` } as React.CSSProperties}>
+    <article className={`page-tile ${status} doc-tone-${document.index % 2 ? 'indigo' : 'sand'} doc-kind-${document.kind}`} style={{ '--page-width': `${size}px` } as React.CSSProperties}>
+      <span className="doc-label" aria-hidden="true">{page.number === document.start ? `Doc ${document.index}${document.kind === 'suggested' ? '?' : ''}` : '\u00a0'}</span>
+      {showConnector && page.number !== document.start && <i className="doc-connector" aria-hidden="true" />}
       <button type="button" className="page-target" onClick={toggle} aria-label={`Page ${page.number}${confirmed ? ', document start' : ''}`} aria-pressed={confirmed}>
         <PageImage page={page} alt="" />
       </button>
@@ -55,7 +71,8 @@ function MiniMap({ controller }: { controller: SplitterController }) {
 function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: SplitterController; onLarge: (page: number) => void; shortcutsActive: boolean }) {
   const [tab, setTab] = useState<ReviewTab>('unsure');
   const [index, setIndex] = useState(0);
-  const queue = tab === 'unsure' ? controller.matches.unsure : controller.matches.suggested;
+  const reviewQueue = [...new Set([...controller.matches.unsure, ...controller.matches.suggested])].sort((left, right) => left - right);
+  const queue = tab === 'unsure' ? reviewQueue : controller.matches.suggested;
   const safeIndex = Math.min(index, Math.max(0, queue.length - 1));
   const candidate = queue[safeIndex];
   const page = controller.pages.find((item) => item.number === candidate);
@@ -83,7 +100,7 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   return (
     <section className={`review-card ${tab}`}>
       <div className="segmented review-tabs" role="tablist" aria-label="Review queue">
-        <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); }}>Unsure <b>{controller.matches.unsure.length}</b></button>
+        <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); }}>Unsure <b>{reviewQueue.length}</b></button>
         <button type="button" role="tab" aria-selected={tab === 'suggested'} onClick={() => { setTab('suggested'); setIndex(0); }}>Suggested <b>{controller.matches.suggested.length}</b></button>
       </div>
       {candidate && page ? (
@@ -116,6 +133,7 @@ export function SplitView({ controller }: { controller: SplitterController }) {
     return controller.pages.filter((page) => candidatePages.has(page.number));
   }, [controller.confirmed, controller.matches.suggested, controller.matches.unsure, controller.pages, filter]);
   const matches = useMemo(() => new Map(controller.matches.pages.map((match) => [match.page, match])), [controller.matches.pages]);
+  const previewDocuments = useMemo(() => buildPreviewDocuments(controller), [controller.confirmed, controller.filename, controller.matches.suggested, controller.pageCount]);
 
   return (
     <main className="split-view">
@@ -127,7 +145,7 @@ export function SplitView({ controller }: { controller: SplitterController }) {
         </div>
         <div className="grid-area">
           <div className="page-grid" style={{ '--page-width': `${sizes[gridSize]}px` } as React.CSSProperties}>
-            {shownPages.map((page) => <PageTile key={page.number} controller={controller} page={page} match={matches.get(page.number)} size={sizes[gridSize]} onLarge={() => setLargePage(page.number)} />)}
+            {shownPages.map((page) => <PageTile key={page.number} controller={controller} page={page} match={matches.get(page.number)} size={sizes[gridSize]} document={previewDocuments.get(page.number) ?? { index: 1, start: 1, end: controller.pageCount, kind: 'confirmed' }} showConnector={filter === 'all'} onLarge={() => setLargePage(page.number)} />)}
             {controller.pages.length < controller.pageCount && <div className="grid-preparing"><span className="spinner" /> Preparing {controller.pageCount - controller.pages.length} more pages…</div>}
           </div>
           <MiniMap controller={controller} />
