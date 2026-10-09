@@ -1,0 +1,50 @@
+import { readFile } from 'node:fs/promises';
+import { expect, test } from '@playwright/test';
+import { BlobReader, BlobWriter, ZipReader } from '@zip.js/zip.js';
+import { PDFDocument } from 'pdf-lib';
+
+const expectedPageCounts = [3, 5, 2, 4, 6, 3, 4, 3];
+
+async function zipPdfPageCounts(path: string): Promise<number[]> {
+  const zipBytes = await readFile(path);
+  const zip = new ZipReader(new BlobReader(new Blob([zipBytes])));
+  try {
+    const entries = (await zip.getEntries())
+      .filter((entry) => !entry.directory)
+      .sort((left, right) => left.filename.localeCompare(right.filename));
+    return await Promise.all(entries.map(async (entry) => {
+      const blob = await entry.getData!(new BlobWriter('application/pdf'));
+      return (await PDFDocument.load(await blob.arrayBuffer())).getPageCount();
+    }));
+  } finally {
+    await zip.close();
+  }
+}
+
+test('bundled sample demonstrates text matching and exports eight documents', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Try a sample PDF' }).click();
+  await expect(page.getByText('30 pages', { exact: true })).toBeVisible();
+  await expect(page.getByText('30 of 30 pages', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to find starts' }).click();
+
+  await page.getByRole('tab', { name: 'Text' }).click();
+  await page.getByLabel('Start phrase').fill('PROCUREMENT REQUEST');
+  await page.getByRole('button', { name: 'Add phrase' }).click();
+  await expect(page.getByText('1 marked · 7 suggested · 0 unsure', { exact: true })).toBeVisible();
+
+  const footer = page.locator('.app-footer');
+  await footer.getByRole('button', { name: 'Accept all 7 suggestions' }).click();
+  await expect(page.getByText('8 marked · 0 suggested · 0 unsure', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to download' }).click();
+  await expect(page.getByRole('heading', { name: '8 documents ready' })).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download all as ZIP' }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  expect(await zipPdfPageCounts(downloadPath!)).toEqual(expectedPageCounts);
+});
