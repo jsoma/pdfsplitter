@@ -158,12 +158,14 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .manual-note p { margin: 0; }
 .review-card { margin-top: 4px; padding: 12px; border: 1px solid #e5c993; border-radius: 10px; background: white; }
 .review-card.suggested { border-color: #c8c9f8; }
+.review-card.reference { border-color: #c8c9f8; }
 .review-tabs { grid-template-columns: 1fr 1fr; }
 .review-tabs button b { margin-left: 3px; color: var(--amber); }
 .review-tabs button:nth-child(2) b { color: var(--indigo); }
 .review-title { display: flex; align-items: center; justify-content: space-between; margin: 15px 0 10px; font-size: 11px; }
 .review-title strong { color: var(--amber); font-size: 12px; }
 .suggested .review-title strong { color: var(--indigo-dark); }
+.reference .review-title strong { color: var(--indigo-dark); }
 .review-title span { color: var(--muted); }
 .review-pages { min-height: 285px; display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding: 12px 10px 10px; border-radius: 7px; background: #f2eeea; }
 .review-pages .page-image { width: 100%; height: 100%; display: block; object-fit: contain; background: white; }
@@ -172,10 +174,12 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .review-before span, .review-candidate span { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; white-space: nowrap; text-align: center; }
 .review-candidate { width: min(190px,62%); padding: 0; border: 2px dashed var(--amber); background: white; cursor: zoom-in; }
 .suggested .review-candidate { border-color: var(--indigo); }
+.reference .review-candidate { border-style: solid; border-color: var(--indigo); }
 .review-candidate .page-image { aspect-ratio: .74; }
 .review-candidate span { color: var(--amber); font-weight: 750; }
 .suggested .review-candidate span { color: var(--indigo-dark); }
 .review-actions { display: grid; grid-template-columns: 38px minmax(0,1.25fr) minmax(0,1fr) 38px; gap: 7px; margin-top: 11px; }
+.review-actions.reference-actions { grid-template-columns: 38px minmax(0,1fr) 38px; }
 .review-actions .button { min-width: 0; padding: 0 8px; font-size: 11px; }
 .accept-link { display: flex; margin: 12px auto 0; }
 .empty-queue { min-height: 170px; display: grid; place-items: center; color: var(--muted); font-size: 13px; }

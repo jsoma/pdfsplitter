@@ -71,10 +71,15 @@ function MiniMap({ controller }: { controller: SplitterController }) {
 function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: SplitterController; onLarge: (page: number) => void; shortcutsActive: boolean }) {
   const [tab, setTab] = useState<ReviewTab>('unsure');
   const [index, setIndex] = useState(0);
-  const reviewQueue = [...new Set([...controller.matches.unsure, ...controller.matches.suggested])].sort((left, right) => left - right);
-  const queue = tab === 'unsure' ? reviewQueue : controller.matches.suggested;
+  const [referenceSeen, setReferenceSeen] = useState(false);
+  const suggestedQueue = [...new Set(controller.matches.suggested)].sort((left, right) => left - right);
+  const suggestedSet = new Set(suggestedQueue);
+  const remainingUnsure = [...new Set(controller.matches.unsure)].filter((page) => !suggestedSet.has(page)).sort((left, right) => left - right);
+  const reviewQueue = [...suggestedQueue, ...remainingUnsure];
+  const queue = tab === 'unsure' ? reviewQueue : suggestedQueue;
   const safeIndex = Math.min(index, Math.max(0, queue.length - 1));
-  const candidate = queue[safeIndex];
+  const showReference = !referenceSeen;
+  const candidate = showReference ? 1 : queue[safeIndex];
   const page = controller.pages.find((item) => item.number === candidate);
   const before = controller.pages.find((item) => item.number === candidate - 1);
   const match = controller.matches.pages.find((item) => item.page === candidate);
@@ -88,6 +93,10 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
     const handleKey = (event: KeyboardEvent) => {
       if (!candidate || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (showReference) {
+        if (event.key === ']') setReferenceSeen(true);
+        return;
+      }
       if (event.key.toLowerCase() === 'y') controller.label(candidate, 'start');
       else if (event.key.toLowerCase() === 'n') controller.label(candidate, 'not-start');
       else if (event.key === '[') setIndex((value) => Math.max(0, value - 1));
@@ -95,28 +104,36 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [candidate, controller, queue.length, shortcutsActive]);
+  }, [candidate, controller, queue.length, shortcutsActive, showReference]);
 
   return (
-    <section className={`review-card ${tab}`}>
+    <section className={`review-card ${tab} ${showReference ? 'reference' : ''}`}>
       <div className="segmented review-tabs" role="tablist" aria-label="Review queue">
         <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); }}>Unsure <b>{reviewQueue.length}</b></button>
         <button type="button" role="tab" aria-selected={tab === 'suggested'} onClick={() => { setTab('suggested'); setIndex(0); }}>Suggested <b>{controller.matches.suggested.length}</b></button>
       </div>
-      {candidate && page ? (
+      {candidate && (page || showReference) ? (
         <>
-          <div className="review-title"><strong>{tab === 'unsure' ? 'Does a document start here?' : 'Likely a start'}</strong><span>{safeIndex + 1} of {queue.length}</span></div>
+          <div className="review-title"><strong>{showReference ? 'Page 1 is already a document start' : tab === 'unsure' ? 'Does a document start here?' : 'Likely a start'}</strong><span>{showReference ? 'Reference' : `${safeIndex + 1} of ${queue.length}`}</span></div>
           <div className="review-pages">
-            {before && <div className="review-before"><PageImage page={before} alt={`Page ${before.number}, before`} /><span>p {before.number} · before</span></div>}
-            <button type="button" className="review-candidate" onClick={() => onLarge(candidate)} aria-label={`View page ${candidate} large`}><PageImage page={page} alt="" /><span>Page {candidate}{match?.score == null ? '' : ` · ${Math.round(match.score)}% similar`}</span></button>
+            {!showReference && before && <div className="review-before"><PageImage page={before} alt={`Page ${before.number}, before`} /><span>p {before.number} · before</span></div>}
+            <button type="button" className="review-candidate" onClick={() => onLarge(candidate)} disabled={!page} aria-label={`View page ${candidate} large`}><PageImage page={page} alt="" /><span>{showReference ? 'Page 1 · confirmed start' : `Page ${candidate}${match?.score == null ? '' : ` · ${Math.round(match.score)}% similar`}`}</span></button>
           </div>
-          <div className="review-actions">
-            <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={safeIndex === 0} aria-label="Previous review page"><ChevronLeft /></button>
-            <button className="button dark" type="button" onClick={() => controller.label(candidate, 'start')}>{tab === 'unsure' ? 'Yes, starts here' : 'Accept'}</button>
-            <button className="button secondary" type="button" onClick={() => controller.label(candidate, 'not-start')}>{tab === 'unsure' ? 'No' : 'Not a start'}</button>
-            <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.min(queue.length - 1, value + 1))} disabled={safeIndex === queue.length - 1} aria-label="Skip to next review page"><ChevronRight /></button>
-          </div>
-          {tab === 'suggested' && <button className="accept-link" type="button" onClick={() => controller.acceptAll()}>Accept all {controller.matches.suggested.length} suggestions</button>}
+          {showReference ? (
+            <div className="review-actions reference-actions">
+              <button className="icon-button" type="button" disabled aria-label="Previous review page"><ChevronLeft /></button>
+              <button className="button dark" type="button" onClick={() => setReferenceSeen(true)}>Continue</button>
+              <button className="icon-button" type="button" onClick={() => setReferenceSeen(true)} aria-label="Skip to next review page"><ChevronRight /></button>
+            </div>
+          ) : (
+            <div className="review-actions">
+              <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={safeIndex === 0} aria-label="Previous review page"><ChevronLeft /></button>
+              <button className="button dark" type="button" onClick={() => controller.label(candidate, 'start')}>{tab === 'unsure' ? 'Yes, starts here' : 'Accept'}</button>
+              <button className="button secondary" type="button" onClick={() => controller.label(candidate, 'not-start')}>{tab === 'unsure' ? 'No' : 'Not a start'}</button>
+              <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.min(queue.length - 1, value + 1))} disabled={safeIndex === queue.length - 1} aria-label="Skip to next review page"><ChevronRight /></button>
+            </div>
+          )}
+          {!showReference && tab === 'suggested' && <button className="accept-link" type="button" onClick={() => controller.acceptAll()}>Accept all {controller.matches.suggested.length} suggestions</button>}
         </>
       ) : <div className="empty-queue">No {tab} pages left.</div>}
     </section>
