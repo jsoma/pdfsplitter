@@ -234,6 +234,19 @@ kbd { margin-left: 6px; padding: 1px 5px; border: 1px solid rgba(128,120,114,.4)
 .footer-status { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .footer-undo { margin-left: 7px; color: var(--muted); }
 
+@media (max-height: 800px) and (min-width: 761px) {
+  .split-sidebar { padding: 10px 14px; }
+  .method-settings { padding: 10px 2px; }
+  .method-settings p { margin-top: 6px; }
+  .review-card { padding: 9px; }
+  .review-title { margin: 8px 0; }
+  .review-pages { min-height: 150px; padding: 8px; }
+  .review-candidate { width: 105px; }
+  .review-before { width: 48px; margin-bottom: 8px; }
+  .review-before .page-image { height: 65px; }
+  .review-actions { margin-top: 8px; }
+}
+
 @media (max-width: 1000px) {
   .app-header { padding: 0 18px; grid-template-columns: 155px 1fr 100px; }
   .stepper li + li::before { width: 14px; margin: 0 7px; }

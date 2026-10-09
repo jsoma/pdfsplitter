@@ -76,6 +76,7 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await page.getByRole('button', { name: 'Add phrase' }).click();
 
   const zoom = page.locator('.page-grid').getByRole('button', { name: 'View page 2 large' });
+  await page.getByRole('button', { name: 'Page 2', exact: true }).hover();
   await zoom.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');

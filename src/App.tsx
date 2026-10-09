@@ -39,11 +39,11 @@ export default function App() {
           <div>
             {controller.phase === 'inspect' && <button className="button secondary" type="button" onClick={startOver}><ArrowLeft size={16} /> Choose another PDF</button>}
             {controller.phase === 'split' && <button className="button secondary" type="button" onClick={() => controller.setPhase('inspect')}><ArrowLeft size={16} /> Check text</button>}
-            {controller.phase === 'export' && <button className="button secondary" type="button" onClick={() => controller.setPhase('split')}><ArrowLeft size={16} /> Find starts</button>}
+            {controller.phase === 'export' && <button disabled={controller.exporting} className="button secondary" type="button" onClick={() => controller.setPhase('split')}><ArrowLeft size={16} /> Find starts</button>}
             {controller.phase === 'split' && controller.canUndo && <button className="text-button footer-undo" type="button" onClick={() => controller.undo()}><Undo2 size={15} /> Undo</button>}
           </div>
           <div className="footer-status">
-            {controller.phase === 'inspect' && <span>You can continue while remaining pages prepare.</span>}
+            {controller.phase === 'inspect' && <span>{controller.progress ? 'You can continue while remaining pages prepare.' : 'Files stay in your browser.'}</span>}
             {controller.phase === 'split' && <span>{controller.confirmed.length} marked · {controller.matches.suggested.length} suggested · {controller.matches.unsure.length} unsure</span>}
             {controller.phase === 'export' && <span>{controller.documents.length} documents · {controller.pageCount} pages</span>}
           </div>

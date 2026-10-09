@@ -18,7 +18,7 @@ export function ExportView({ controller }: { controller: SplitterController }) {
             <article key={document.start}>
               <span className="doc-index"><FileText size={17} />{String(index + 1).padStart(2, '0')}</span>
               <span className="doc-range">{document.start}–{document.end}<small>{count} {count === 1 ? 'page' : 'pages'}</small></span>
-              <label><span className="visually-hidden">Filename for document starting page {document.start}</span><input value={document.filename} onChange={(event) => controller.rename(document.start, event.target.value)} /></label>
+              <label><span className="visually-hidden">Filename for document starting page {document.start}</span><input disabled={controller.exporting} value={document.filename} onChange={(event) => controller.rename(document.start, event.target.value)} /></label>
               <p>{first?.text.trim().slice(0, 130) || `Starts at page ${document.start}`}</p>
             </article>
           );

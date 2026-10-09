@@ -76,7 +76,7 @@ async function loadDocument(bytes: Uint8Array, signal?: AbortSignal): Promise<PD
     rejectAbort = reject;
   });
   const onAbort = () => {
-    void loadingTask.destroy();
+    void loadingTask.destroy().catch(() => undefined);
     rejectAbort?.(abortError());
   };
   signal?.addEventListener('abort', onAbort, { once: true });
@@ -211,7 +211,7 @@ class BrowserPdfSource implements PdfSource {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    void this.document.loadingTask.destroy();
+    void this.document.loadingTask.destroy().catch(() => undefined);
   }
 
   private assertUsable(): void {

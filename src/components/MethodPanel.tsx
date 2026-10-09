@@ -27,7 +27,7 @@ export function MethodPanel({ controller }: { controller: SplitterController }) 
         <div className="method-settings">
           <label className="slider-label" htmlFor="similarity"><span>How similar</span><strong>{controller.threshold}%</strong></label>
           <input id="similarity" type="range" min="50" max="100" value={controller.threshold} onChange={(event) => controller.setThreshold(Number(event.target.value))} />
-          <p>Learning from {controller.confirmed.length} starts you marked (and {controller.rejected.length} you rejected).</p>
+          <p>Based on {controller.confirmed.length} marked {controller.confirmed.length === 1 ? 'start' : 'starts'} and {controller.rejected.length} rejected pages. Click a page to mark another start.</p>
         </div>
       )}
 
