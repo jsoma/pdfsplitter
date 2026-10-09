@@ -11,6 +11,19 @@ interface ExtractedPdf {
   text: string[];
 }
 
+test('accepts a PDF dropped on the header outside the upload controls', async ({ page }) => {
+  await page.goto('/');
+  const transfer = await page.evaluateHandle((bytes) => {
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array(bytes)], 'Dropped packet.pdf', { type: 'application/pdf' }));
+    return data;
+  }, [...await createPacketPdf()]);
+  await page.locator('.app-header').dispatchEvent('drop', { dataTransfer: transfer });
+  await expect(page.getByText('Dropped packet.pdf', { exact: true })).toBeVisible();
+  await expect(page.getByText('4 of 4 pages', { exact: true })).toBeVisible();
+  await transfer.dispose();
+});
+
 async function extractZipPdfs(path: string): Promise<ExtractedPdf[]> {
   const zipBytes = await readFile(path);
   const zip = new ZipReader(new BlobReader(new Blob([zipBytes])));

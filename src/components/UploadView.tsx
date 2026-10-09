@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileUp, LockKeyhole } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import type { SplitterController } from '../types';
 
 export function UploadView({ controller }: { controller: SplitterController }) {
@@ -11,6 +11,38 @@ export function UploadView({ controller }: { controller: SplitterController }) {
   const busy = controller.loading || sampleLoading;
 
   useEffect(() => () => sampleRequest.current?.abort(), []);
+
+  // Listen while the upload view is mounted so the header and empty space
+  // accept files too. Removing the listeners protects an open packet.
+  useEffect(() => {
+    const enter = (event: DragEvent) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      if (!busy) setDragging(true);
+    };
+    const leave = (event: DragEvent) => {
+      if (!event.relatedTarget) setDragging(false);
+    };
+    const drop = (event: DragEvent) => {
+      event.preventDefault();
+      setDragging(false);
+      const file = event.dataTransfer?.files[0];
+      if (file && !busy) {
+        setSampleError(null);
+        void controller.open(file);
+      }
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragover', enter);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragover', enter);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('drop', drop);
+    };
+  }, [busy, controller.open]);
 
   const open = (file?: File) => {
     if (file && !busy) {
@@ -39,24 +71,9 @@ export function UploadView({ controller }: { controller: SplitterController }) {
   };
 
   return (
-    <main className="upload-view">
-      <section className="upload-intro">
-        <p className="eyebrow">LOCAL PDF TOOL</p>
-        <h1>Turn one PDF packet into separate documents.</h1>
-        <p className="lede">Check the text, find each first page, then download clean PDFs in one ZIP.</p>
-        <div className="workflow-preview" aria-label="Three step workflow">
-          <span><b>1</b> Check text</span><i />
-          <span><b>2</b> Find starts</span><i />
-          <span><b>3</b> Download</span>
-        </div>
-      </section>
-
+    <main className={`upload-view ${dragging ? 'dragging' : ''}`}>
       <section
-        className={`dropzone ${dragging ? 'dragging' : ''}`}
-        onDragEnter={(event) => { event.preventDefault(); if (!busy) setDragging(true); }}
-        onDragOver={(event) => event.preventDefault()}
-        onDragLeave={(event) => { if (event.currentTarget === event.target) setDragging(false); }}
-        onDrop={(event) => { event.preventDefault(); setDragging(false); if (!busy) open(event.dataTransfer.files[0]); }}
+        className="upload-controls"
         aria-label="Drop a PDF file"
         aria-busy={busy}
       >
@@ -74,20 +91,19 @@ export function UploadView({ controller }: { controller: SplitterController }) {
           }}
         />
         <span className="upload-icon"><FileUp size={30} /></span>
-        <h2>Drop a PDF here</h2>
-        <p>or choose one from your device</p>
+        <h1>Drop a PDF anywhere</h1>
         <button className="button primary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}>
           {controller.loading ? 'Opening PDF…' : 'Browse for a PDF'}
         </button>
         <div className="sample-option">
-          <span className="sample-divider">or</span>
           <button className="button secondary sample-button" type="button" onClick={() => void openSample()} disabled={busy}>
             {sampleLoading ? 'Loading sample…' : 'Try a sample PDF'}
           </button>
           <small>30 pages · 8 documents</small>
         </div>
         {sampleError && <p className="sample-error" role="alert">{sampleError}</p>}
-        <p className="privacy"><LockKeyhole size={15} /> Files stay in your browser</p>
+        <p className="privacy">Files stay in your browser.</p>
+        <a className="frisket-link" href="https://frisket.dev/">Frisket</a>
       </section>
     </main>
   );
