@@ -4,6 +4,8 @@ Split a packet of PDFs into separate documents, entirely in your browser.
 
 **[Open PDF Splitter](https://jsoma.github.io/pdfsplitter/)**
 
+Choose **Try a sample PDF** to explore a fictional public-works packet: 30 pages across eight requests of different lengths. Its cover pages work with visual matching, or try the text phrase `PROCUREMENT REQUEST`.
+
 1. Drop in a PDF and check its existing text.
 2. Mark document starts manually, look for matching text, or use visual similarity to find pages that resemble your examples.
 3. Review suggestions, adjust filenames, and download all documents as a ZIP.
@@ -31,3 +33,5 @@ npm run test:e2e
 GitHub Actions tests each pull request and publishes `main` to GitHub Pages. PDF.js and its fonts, character maps, and rendering assets are served with the app. Production files are in `dist/`.
 
 Built with React, PDF.js, pdf-lib, and zip.js. The design and matching approach grew out of [Frisket](https://github.com/frisket-dev/frisket).
+
+The bundled sample can be regenerated with `node scripts/sample-pdf.mjs`. All names and records in it are fictional.
