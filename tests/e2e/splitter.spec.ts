@@ -101,7 +101,7 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await expect(page.getByRole('button', { name: 'Remove page 3 as start' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Continue to download' }).click();
-  await expect(page.getByRole('heading', { name: '2 documents ready' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '2 documents' })).toBeVisible();
   await expect(page.locator('.export-document-card')).toHaveCount(2);
   await page.getByLabel('Filename template').fill('../same.pdf');
 

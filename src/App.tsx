@@ -54,7 +54,7 @@ export default function App() {
         </footer>
       )}
       <footer className="site-credit">
-        {(controller.phase === 'upload' || controller.phase === 'export') && <a href="https://frisket.dev/">Frisket</a>}
+        {(controller.phase === 'upload' || controller.phase === 'export') && <a href="https://frisket.dev/">Try Frisket!</a>}
         <a href="https://jonathansoma.com/">Jonathan Soma</a>
         <a href="mailto:jonathan.soma@gmail.com">jonathan.soma@gmail.com</a>
         <a href="https://twitter.com/dangerscarf">@dangerscarf</a>
