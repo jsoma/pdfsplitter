@@ -13,7 +13,7 @@ export interface SplitterController {
  confirmed: number[]; rejected: number[]; method: Method; threshold: number; phrases: PhraseRule[]; matches: MatchResult; documents: OutputDocument[];
  open(file: File): Promise<void>; reset(): void; setPhase(phase: 'inspect' | 'split' | 'export'): void;
  setMethod(method: Method): void; setThreshold(value: number): void; setPhrases(phrases: PhraseRule[]): void;
- label(page: number, label: PageLabel): void; acceptAll(): void; undo(): void; canUndo: boolean;
- filenameTemplate: string; setFilenameTemplate(value: string): void; download(): Promise<void>; cancelExport(): void;
+ label(page: number, label: PageLabel): void; acceptAll(): void; undo(): number | null; canUndo: boolean;
+ filenameTemplate: string; setFilenameTemplate(value: string): void; previewDocument(document: OutputDocument): void; download(): Promise<void>; cancelExport(): void;
  render(page: number, canvas: HTMLCanvasElement, width: number, signal?: AbortSignal): Promise<void>;
 }
