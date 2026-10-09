@@ -78,11 +78,12 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   const suggestedSet = new Set(suggestedQueue);
   const remainingUnsure = [...new Set(controller.matches.unsure)].filter((page) => !suggestedSet.has(page)).sort((left, right) => left - right);
   const reviewQueue = [...suggestedQueue, ...remainingUnsure];
-  const queue = tab === 'unsure' ? reviewQueue : suggestedQueue;
+  const activeQueue = tab === 'unsure' ? reviewQueue : suggestedQueue;
+  const queue = restoredPage != null && !activeQueue.includes(restoredPage) ? [restoredPage, ...activeQueue] : activeQueue;
   const restoredIndex = restoredPage == null ? -1 : queue.indexOf(restoredPage);
   const safeIndex = Math.min(restoredIndex >= 0 ? restoredIndex : index, Math.max(0, queue.length - 1));
   const showReference = !referenceSeen;
-  const candidate = showReference ? 1 : restoredPage ?? queue[safeIndex];
+  const candidate = showReference ? 1 : queue[safeIndex];
   const page = controller.pages.find((item) => item.number === candidate);
   const before = controller.pages.find((item) => item.number === candidate - 1);
   const match = controller.matches.pages.find((item) => item.page === candidate);
@@ -101,8 +102,9 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
     setRestoredPage(null);
   };
   const move = (delta: number) => {
+    const nextPage = queue[Math.max(0, Math.min(queue.length - 1, safeIndex + delta))];
     setRestoredPage(null);
-    setIndex(Math.max(0, Math.min(queue.length - 1, safeIndex + delta)));
+    setIndex(Math.max(0, activeQueue.indexOf(nextPage)));
   };
 
   useEffect(() => {
@@ -125,7 +127,7 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [candidate, controller, queue.length, shortcutsActive, showReference, safeIndex]);
+  }, [candidate, controller, queue.length, shortcutsActive, showReference, safeIndex, restoredPage]);
 
   return (
     <section className={`review-card ${candidateTone} ${showReference ? 'reference' : ''}`}>
@@ -135,7 +137,7 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
       </div>
       {candidate && (page || showReference) ? (
         <>
-          <div className="review-title"><strong>{showReference ? 'Page 1 is already a document start' : tab === 'unsure' ? 'Does a document start here?' : 'Likely a start'}</strong><span>{showReference ? 'Reference' : restoredPage != null && restoredIndex < 0 ? `Page ${restoredPage}` : `${safeIndex + 1} of ${queue.length}`}</span></div>
+          <div className="review-title"><strong>{showReference ? 'Page 1 is already a document start' : tab === 'unsure' ? 'Does a document start here?' : 'Likely a start'}</strong><span>{showReference ? 'Reference' : `${safeIndex + 1} of ${queue.length}`}</span></div>
           <div className="review-pages">
             {!showReference && before && <div className="review-before"><PageImage page={before} alt={`Page ${before.number}, before`} /><span>p {before.number} · before</span></div>}
             <button type="button" className="review-candidate" onClick={() => onLarge(candidate)} disabled={!page} aria-label={`View page ${candidate} large`}><PageImage page={page} alt="" /><span>{showReference ? 'Page 1 · confirmed start' : `Page ${candidate}${match?.score == null ? '' : ` · ${Math.round(match.score)}% similar`}`}</span></button>

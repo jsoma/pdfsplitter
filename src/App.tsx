@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, RotateCcw, Undo2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react';
 import { ExportView } from './components/ExportView';
 import { InspectView } from './components/InspectView';
 import { SplitView } from './components/SplitView';
@@ -40,7 +40,6 @@ export default function App() {
             {controller.phase === 'inspect' && <button className="button secondary" type="button" onClick={startOver}><ArrowLeft size={16} /> Choose another PDF</button>}
             {controller.phase === 'split' && <button className="button secondary" type="button" onClick={() => controller.setPhase('inspect')}><ArrowLeft size={16} /> Check text</button>}
             {controller.phase === 'export' && <button disabled={controller.exporting} className="button secondary" type="button" onClick={() => controller.setPhase('split')}><ArrowLeft size={16} /> Find starts</button>}
-            {controller.phase === 'split' && controller.canUndo && <button className="text-button footer-undo" type="button" onClick={() => controller.undo()}><Undo2 size={15} /> Undo</button>}
           </div>
           <div className="footer-status">
             {controller.phase === 'inspect' && <span>{controller.progress ? 'You can continue while remaining pages prepare.' : 'Files stay in your browser.'}</span>}

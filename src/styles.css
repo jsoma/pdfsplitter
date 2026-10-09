@@ -225,7 +225,6 @@ kbd { margin-left: 6px; padding: 1px 5px; border: 1px solid rgba(128,120,114,.4)
 .app-footer > div { display: flex; align-items: center; gap: 9px; }
 .app-footer > div:last-child { justify-content: flex-end; }
 .footer-status { color: var(--muted); font-size: 11px; white-space: nowrap; }
-.footer-undo { margin-left: 7px; color: var(--muted); }
 
 @media (max-height: 800px) and (min-width: 761px) {
   .split-sidebar { padding: 10px 14px; }
