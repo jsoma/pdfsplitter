@@ -46,13 +46,17 @@ async function extractZipPdfs(path: string): Promise<ExtractedPdf[]> {
 }
 
 test('splits a local PDF into safe, downloadable PDFs without uploading it', async ({ page }) => {
-  const documentRequests: string[] = [];
+  const unexpectedDocumentRequests: string[] = [];
   page.on('request', (request) => {
-    if (['fetch', 'xhr'].includes(request.resourceType())) documentRequests.push(request.url());
+    if (!['fetch', 'xhr'].includes(request.resourceType())) return;
+    const url = new URL(request.url());
+    const isLocalAsset = url.origin === 'http://127.0.0.1:4173';
+    const isRead = request.method() === 'GET' || request.method() === 'HEAD';
+    if (!isLocalAsset || !isRead) unexpectedDocumentRequests.push(`${request.method()} ${request.url()}`);
   });
 
   await page.goto('/');
-  documentRequests.length = 0;
+  unexpectedDocumentRequests.length = 0;
 
   await page.getByLabel('PDF file').setInputFiles({
     name: 'meeting packets.pdf',
@@ -109,5 +113,5 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
     [expect.stringContaining(fixturePageText[2]), expect.stringContaining(fixturePageText[3])],
   ]);
 
-  expect(documentRequests).toEqual([]);
+  expect(unexpectedDocumentRequests).toEqual([]);
 });

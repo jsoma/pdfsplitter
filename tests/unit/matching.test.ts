@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { matchPages, perceptualHash, similarity } from '../../src/matching';
 import type { PageInfo, Signature } from '../../src/types';
 
-function page(number: number, text: string, signature: Signature = Array(32).fill(0)): PageInfo {
+function page(number: number, text: string, signature: Signature = Array(256).fill(0)): PageInfo {
   return { number, text, signature, width: 612, height: 792, thumbnail: '' };
 }
 
@@ -17,15 +17,15 @@ describe('perceptualHash and similarity', () => {
     const first = perceptualHash(gray);
     const second = perceptualHash(gray);
 
-    expect(first).toHaveLength(32);
+    expect(first).toHaveLength(256);
     expect(first).toEqual(second);
-    expect(first.every((byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255)).toBe(true);
+    expect(first.every((bit) => bit === 0 || bit === 1)).toBe(true);
     expect(() => perceptualHash(gray.subarray(0, 4095))).toThrow(/4096|64/i);
   });
 
   it('reports bounded, symmetric similarity with exact endpoints', () => {
-    const black = Array(32).fill(0);
-    const white = Array(32).fill(255);
+    const black = Array(256).fill(0);
+    const white = Array(256).fill(1);
     const oneBitApart = [...black];
     oneBitApart[0] = 1;
 
@@ -91,14 +91,14 @@ describe('matchPages text matching', () => {
 
 describe('matchPages visual matching', () => {
   it('suggests close visual matches while explicit labels retain authority', () => {
-    const black = Array(32).fill(0);
+    const black = Array(256).fill(0);
     const oneBitApart = [...black];
     oneBitApart[0] = 1;
     const result = matchPages({
       pages: [
         page(1, 'Confirmed example', black),
         page(2, 'Close candidate', oneBitApart),
-        page(3, 'Unrelated candidate', Array(32).fill(255)),
+        page(3, 'Unrelated candidate', Array(256).fill(1)),
         page(4, 'Rejected close candidate', black),
       ],
       pageCount: 4,
