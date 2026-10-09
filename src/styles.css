@@ -58,6 +58,12 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3
 .upload-icon { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 18px; background: var(--indigo-soft); color: var(--indigo); }
 .dropzone h2 { margin: 22px 0 6px; font: 500 30px Georgia,serif; }
 .dropzone > p { margin: 0 0 22px; color: var(--muted); }
+.sample-option { width: min(260px,100%); display: grid; justify-items: center; gap: 7px; margin-top: 13px; }
+.sample-divider { width: 100%; display: flex; align-items: center; gap: 9px; color: #958b84; font-size: 10px; text-transform: uppercase; }
+.sample-divider::before, .sample-divider::after { content: ''; height: 1px; flex: 1; background: #e3dcd5; }
+.sample-button { min-height: 34px; }
+.sample-option small { color: var(--muted); font-size: 10px; }
+.dropzone .sample-error { margin: 10px 0 0; color: #8b332b; font-size: 11px; }
 .dropzone .privacy { display: flex; align-items: center; gap: 7px; margin: 28px 0 0; color: #655d57; font-size: 12px; }
 
 .inspect-view { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px minmax(0,1fr); }
