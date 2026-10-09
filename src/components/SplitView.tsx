@@ -83,6 +83,7 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   const page = controller.pages.find((item) => item.number === candidate);
   const before = controller.pages.find((item) => item.number === candidate - 1);
   const match = controller.matches.pages.find((item) => item.page === candidate);
+  const candidateTone = suggestedSet.has(candidate) ? 'suggested' : 'unsure';
 
   useEffect(() => {
     setIndex((value) => Math.min(value, Math.max(0, queue.length - 1)));
@@ -107,7 +108,7 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   }, [candidate, controller, queue.length, shortcutsActive, showReference]);
 
   return (
-    <section className={`review-card ${tab} ${showReference ? 'reference' : ''}`}>
+    <section className={`review-card ${candidateTone} ${showReference ? 'reference' : ''}`}>
       <div className="segmented review-tabs" role="tablist" aria-label="Review queue">
         <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); }}>Unsure <b>{reviewQueue.length}</b></button>
         <button type="button" role="tab" aria-selected={tab === 'suggested'} onClick={() => { setTab('suggested'); setIndex(0); }}>Suggested <b>{controller.matches.suggested.length}</b></button>

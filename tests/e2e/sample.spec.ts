@@ -30,6 +30,13 @@ test('bundled sample demonstrates text matching and exports eight documents', as
   await expect(page.getByText('30 of 30 pages', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to find starts' }).click();
 
+  const review = page.locator('.review-card');
+  await expect(review.getByRole('button', { name: 'View page 1 large', exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(review.getByRole('button', { name: 'View page 4 large', exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Skip to next review page' }).click();
+  await expect(review.getByRole('button', { name: 'View page 9 large', exact: true })).toBeVisible();
+
   await page.getByRole('tab', { name: 'Text' }).click();
   await page.getByLabel('Start phrase').fill('PROCUREMENT REQUEST');
   await page.getByRole('button', { name: 'Add phrase' }).click();
