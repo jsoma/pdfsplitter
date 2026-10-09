@@ -6,6 +6,10 @@ function page(number: number, text: string, signature: Signature = Array(256).fi
   return { number, text, signature, width: 612, height: 792, thumbnail: '' };
 }
 
+function leadingBits(count: number): Signature {
+  return Array.from({ length: 256 }, (_, index) => Number(index < count));
+}
+
 describe('perceptualHash and similarity', () => {
   it('returns a deterministic 256-bit signature and rejects malformed image data', () => {
     const gray = Uint8Array.from({ length: 64 * 64 }, (_, index) => {
@@ -90,21 +94,21 @@ describe('matchPages text matching', () => {
 });
 
 describe('matchPages visual matching', () => {
-  it('suggests close visual matches while explicit labels retain authority', () => {
-    const black = Array(256).fill(0);
-    const oneBitApart = [...black];
-    oneBitApart[0] = 1;
+  it('suggests a candidate closer to a positive example than a negative example', () => {
+    const positive = leadingBits(0);
+    const candidate = leadingBits(10);
+    const negative = leadingBits(64);
     const result = matchPages({
       pages: [
-        page(1, 'Confirmed example', black),
-        page(2, 'Close candidate', oneBitApart),
-        page(3, 'Unrelated candidate', Array(256).fill(1)),
-        page(4, 'Rejected close candidate', black),
+        page(1, 'Confirmed example', positive),
+        page(2, 'Close candidate', candidate),
+        page(3, 'Unrelated candidate', leadingBits(256)),
+        page(4, 'Rejected example', negative),
       ],
       pageCount: 4,
       confirmed: [1],
       rejected: [4],
-      threshold: 99,
+      threshold: 95,
       phrases: [],
       method: 'visual',
     });
@@ -114,5 +118,25 @@ describe('matchPages visual matching', () => {
     expect(result.suggested).not.toContain(3);
     expect(result.suggested).not.toContain(4);
     expect(result.pages.find((entry) => entry.page === 2)?.closest).toBe(1);
+  });
+
+  it('vetoes an equal negative match and puts the candidate in the review queue', () => {
+    const result = matchPages({
+      pages: [
+        page(1, 'Confirmed example', leadingBits(0)),
+        page(2, 'Equidistant candidate', leadingBits(1)),
+        page(3, 'Rejected example', leadingBits(2)),
+      ],
+      pageCount: 3,
+      confirmed: [1],
+      rejected: [3],
+      threshold: 99,
+      phrases: [],
+      method: 'visual',
+    });
+
+    expect(result.suggested).not.toContain(2);
+    expect(result.unsure).toContain(2);
+    expect(result.pages.find((entry) => entry.page === 2)?.score).toBeCloseTo(99.6, 1);
   });
 });
