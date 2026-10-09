@@ -37,7 +37,11 @@ export function UploadView({ controller }: { controller: SplitterController }) {
           type="file"
           accept="application/pdf,.pdf"
           aria-label="PDF file"
-          onChange={(event) => open(event.currentTarget.files?.[0])}
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = '';
+            open(file);
+          }}
         />
         <span className="upload-icon"><FileUp size={30} /></span>
         <h2>Drop a PDF here</h2>
