@@ -6,10 +6,9 @@ import type { OutputDocument, Progress } from './types';
 
 declare const self: DedicatedWorkerGlobalScope;
 
-interface ExportRequest {
-  bytes: ArrayBuffer;
-  documents: OutputDocument[];
-}
+type ExportRequest =
+  | { mode: 'zip'; bytes: ArrayBuffer; documents: OutputDocument[] }
+  | { mode: 'pdf'; bytes: ArrayBuffer; document: OutputDocument };
 
 const ILLEGAL_FILENAME = /[<>:"/\\|?*\u0000-\u001f\u007f]/g;
 const TRAILING_DOTS_OR_SPACES = /[. ]+$/;
@@ -57,10 +56,31 @@ function report(progress: Progress): void {
   self.postMessage({ type: 'progress', progress });
 }
 
+async function copyDocument(source: PDFDocument, descriptor: OutputDocument): Promise<Uint8Array> {
+  validateDocument(descriptor, source.getPageCount());
+  const output = await PDFDocument.create();
+  const pageIndices = Array.from(
+    { length: descriptor.end - descriptor.start + 1 },
+    (_, offset) => descriptor.start - 1 + offset,
+  );
+  const pages = await output.copyPages(source, pageIndices);
+  for (const page of pages) output.addPage(page);
+  return output.save();
+}
+
 self.onmessage = async ({ data }: MessageEvent<ExportRequest>) => {
   try {
-    if (!data.documents.length) throw new Error('There are no documents to export.');
     const source = await PDFDocument.load(data.bytes);
+    if (data.mode === 'pdf') {
+      const pdfBytes = await copyDocument(source, data.document);
+      self.postMessage({
+        type: 'done',
+        blob: new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' }),
+      });
+      return;
+    }
+
+    if (!data.documents.length) throw new Error('There are no documents to export.');
     const total = data.documents.length;
     const usedNames = new Set<string>();
     const blobWriter = new BlobWriter('application/zip');
@@ -71,18 +91,10 @@ self.onmessage = async ({ data }: MessageEvent<ExportRequest>) => {
     report({ completed: 0, total, label: 'Preparing export' });
     for (let index = 0; index < total; index += 1) {
       const descriptor = data.documents[index];
-      validateDocument(descriptor, source.getPageCount());
       const filename = uniqueFilename(descriptor.filename, index, usedNames);
       report({ completed: index, total, label: `Creating ${filename}` });
 
-      const output = await PDFDocument.create();
-      const pageIndices = Array.from(
-        { length: descriptor.end - descriptor.start + 1 },
-        (_, offset) => descriptor.start - 1 + offset,
-      );
-      const pages = await output.copyPages(source, pageIndices);
-      for (const page of pages) output.addPage(page);
-      const pdfBytes = await output.save();
+      const pdfBytes = await copyDocument(source, descriptor);
       await zip.add(filename, new Uint8ArrayReader(pdfBytes));
       report({ completed: index + 1, total, label: `Added ${filename}` });
     }

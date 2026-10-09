@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { SplitterController } from '../types';
 
 export function UploadView({ controller }: { controller: SplitterController }) {
@@ -90,8 +90,15 @@ export function UploadView({ controller }: { controller: SplitterController }) {
             open(file);
           }}
         />
-        <span className="upload-icon"><FileUp size={30} /></span>
-        <h1>Drop a PDF anywhere</h1>
+        <div className="split-illustration" aria-hidden="true">
+          <div className="illustration-packet"><i /><i /><i /><i /><i /><i /></div>
+          <ArrowRight size={26} />
+          <div className="illustration-documents">
+            {[0, 1, 2].map((document) => <div className="illustration-document" key={document}><i /><i /><i /></div>)}
+          </div>
+        </div>
+        <h1>Split a PDF into separate documents.</h1>
+        <p className="upload-prompt">Drop a PDF anywhere to get started.</p>
         <button className="button primary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}>
           {controller.loading ? 'Opening PDF…' : 'Browse for a PDF'}
         </button>

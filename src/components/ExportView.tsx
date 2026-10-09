@@ -1,27 +1,15 @@
-import { Archive, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { SplitterController } from '../types';
 import { PageImage } from './PagePreview';
 import './ExportView.css';
 
 export function ExportView({ controller }: { controller: SplitterController }) {
-  const totalPages = controller.documents.reduce(
-    (total, document) => total + document.end - document.start + 1,
-    0,
-  );
   const firstFilename = controller.documents[0]?.filename;
   const progress = controller.progress;
 
   return (
     <main className="export-workspace">
-      <section className="export-command" aria-labelledby="export-title">
-        <div className="export-command__title">
-          <span className="export-command__icon" aria-hidden="true"><Archive size={25} /></span>
-          <div>
-            <h1 id="export-title">{controller.documents.length} documents ready</h1>
-            <p>{controller.documents.length} PDFs · {totalPages} pages · one ZIP</p>
-          </div>
-        </div>
-
+      <section className="export-command" aria-label="Export controls">
         <div className="export-template">
           <label htmlFor="filename-template">Filename template</label>
           <input
@@ -69,15 +57,22 @@ export function ExportView({ controller }: { controller: SplitterController }) {
 
       <section className="export-documents" aria-labelledby="export-documents-title">
         <div className="export-documents__heading">
-          <h2 id="export-documents-title">Documents</h2>
+          <h1 id="export-documents-title">{controller.documents.length} documents</h1>
           <span>First page of each document</span>
         </div>
-        <div className="export-document-grid" role="list">
+        <div className="export-document-grid">
           {controller.documents.map((document, index) => {
             const firstPage = controller.pages.find((page) => page.number === document.start);
             const count = document.end - document.start + 1;
             return (
-              <article className="export-document-card" key={document.start} role="listitem">
+              <button
+                className="export-document-card"
+                key={document.start}
+                type="button"
+                onClick={() => controller.previewDocument(document)}
+                aria-label={`Open document ${index + 1} as PDF`}
+                title="Open PDF in a new tab"
+              >
                 <div className="export-document-card__preview">
                   <PageImage
                     page={firstPage}
@@ -89,7 +84,7 @@ export function ExportView({ controller }: { controller: SplitterController }) {
                   <span>Document {String(index + 1).padStart(2, '0')}</span>
                   <strong>{count} {count === 1 ? 'page' : 'pages'}</strong>
                 </div>
-              </article>
+              </button>
             );
           })}
         </div>

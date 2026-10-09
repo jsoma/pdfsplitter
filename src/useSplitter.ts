@@ -1,19 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { openPdf, type PdfSource } from './pdf';
-import { exportZip } from './export';
+import { exportPdf, exportZip } from './export';
 import { matchPages, splitRanges } from './matching';
-import type { Method, PageInfo, PageLabel, PhraseRule, Progress, SplitterController } from './types';
+import type { Method, OutputDocument, PageInfo, PageLabel, PhraseRule, Progress, SplitterController, UndoResult } from './types';
 
 type Decisions = { confirmed: number[]; rejected: number[] };
+type PreviewSession = {
+  abort: AbortController;
+  popup: Window;
+  url: string | null;
+  monitor: number;
+};
 const initialDecisions = (): Decisions => ({ confirmed: [1], rejected: [] });
 const defaultFilenameTemplate = '{name}_{index}_pages_{start}-{end}.pdf';
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+
+function changedDecisionPage(current: Decisions, restored: Decisions): number | null {
+  const candidates = new Set([
+    ...current.confirmed,
+    ...current.rejected,
+    ...restored.confirmed,
+    ...restored.rejected,
+  ]);
+  return [...candidates].sort((left, right) => left - right).find((page) => (
+    current.confirmed.includes(page) !== restored.confirmed.includes(page)
+    || current.rejected.includes(page) !== restored.rejected.includes(page)
+  )) ?? null;
+}
 
 export function useSplitter(): SplitterController {
   const source = useRef<PdfSource | null>(null);
   const preparation = useRef<AbortController | null>(null);
   const exportingJob = useRef<AbortController | null>(null);
   const downloadUrl = useRef<string | null>(null);
+  const previewSessions = useRef(new Set<PreviewSession>());
   const [phase, setPhase] = useState<SplitterController['phase']>('upload');
   const [filename, setFilename] = useState('');
   const [pageCount, setPageCount] = useState(0);
@@ -40,6 +60,20 @@ export function useSplitter(): SplitterController {
     downloadUrl.current = null;
   }, []);
   useEffect(() => dispose, [dispose]);
+
+  const releasePreview = useCallback((session: PreviewSession) => {
+    window.clearInterval(session.monitor);
+    if (session.url) URL.revokeObjectURL(session.url);
+    previewSessions.current.delete(session);
+  }, []);
+  useEffect(() => () => {
+    for (const session of previewSessions.current) {
+      if (session.url) continue;
+      session.abort.abort();
+      session.popup.close();
+      releasePreview(session);
+    }
+  }, [releasePreview]);
 
   const reset = useCallback(() => {
     dispose();
@@ -103,8 +137,57 @@ export function useSplitter(): SplitterController {
       return [...previous, { ...last, confirmed: [...new Set([...last.confirmed, ...matches.suggested])].sort((a, b) => a - b) }];
     });
   }, [matches.suggested]);
-  const undo = useCallback(() => setHistory(previous => previous.length > 1 ? previous.slice(0, -1) : previous), []);
+  const undo = useCallback((): UndoResult | null => {
+    if (history.length <= 1) return null;
+    const current = history[history.length - 1];
+    const restored = history[history.length - 2];
+    setHistory(history.slice(0, -1));
+    const page = changedDecisionPage(current, restored);
+    return page == null ? null : { page, ...restored };
+  }, [history]);
   const cancelExport = useCallback(() => exportingJob.current?.abort(), []);
+
+  const previewDocument = useCallback((document: OutputDocument) => {
+    const pdf = source.current;
+    if (!pdf) return;
+
+    const popup = window.open('', '_blank');
+    if (!popup) {
+      setError('The PDF preview was blocked. Allow popups for this site and try again.');
+      return;
+    }
+
+    setError(null);
+    popup.opener = null;
+    popup.document.title = document.filename;
+    const status = popup.document.createElement('p');
+    status.textContent = 'Preparing PDF preview…';
+    status.style.cssText = 'font:16px system-ui,sans-serif;padding:32px;color:#292421';
+    popup.document.body.replaceChildren(status);
+
+    const abort = new AbortController();
+    const session: PreviewSession = { abort, popup, url: null, monitor: 0 };
+    session.monitor = window.setInterval(() => {
+      if (!popup.closed) return;
+      abort.abort();
+      releasePreview(session);
+    }, 750);
+    previewSessions.current.add(session);
+
+    void exportPdf(pdf.bytes, document, abort.signal).then((blob) => {
+      if (popup.closed || abort.signal.aborted) {
+        releasePreview(session);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      session.url = url;
+      popup.location.replace(url);
+    }).catch((failure) => {
+      popup.close();
+      releasePreview(session);
+      if (!abort.signal.aborted) setError(`The PDF preview could not be opened. ${errorMessage(failure)}`);
+    });
+  }, [releasePreview]);
 
   const download = useCallback(async () => {
     if (!source.current || exportingJob.current) return;
@@ -142,5 +225,6 @@ export function useSplitter(): SplitterController {
 
   return { phase, filename, pageCount, pages, progress: exporting ? exportProgress : preparingProgress, error, loading, exporting,
     confirmed, rejected, method, threshold, phrases, matches, documents, open, reset, setPhase, setMethod,
-    setThreshold, setPhrases, label, acceptAll, undo, canUndo: history.length > 1, filenameTemplate, setFilenameTemplate, download, cancelExport, render };
+    setThreshold, setPhrases, label, acceptAll, undo, canUndo: history.length > 1, filenameTemplate, setFilenameTemplate,
+    previewDocument, download, cancelExport, render };
 }

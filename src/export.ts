@@ -18,19 +18,22 @@ interface ErrorMessage {
 
 type ExportMessage = ProgressMessage | DoneMessage | ErrorMessage;
 
+type WorkerRequest =
+  | { mode: 'zip'; documents: OutputDocument[] }
+  | { mode: 'pdf'; document: OutputDocument };
+
 function abortError(): DOMException {
-  return new DOMException('The export was cancelled.', 'AbortError');
+  return new DOMException('The PDF operation was cancelled.', 'AbortError');
 }
 
-export function exportZip(
+function runExportWorker(
   bytes: Uint8Array,
-  documents: OutputDocument[],
-  onProgress: (progress: Progress) => void,
+  request: WorkerRequest,
+  onProgress?: (progress: Progress) => void,
   signal?: AbortSignal,
 ): Promise<Blob> {
   if (signal?.aborted) return Promise.reject(abortError());
   if (bytes.byteLength === 0) return Promise.reject(new Error('The source PDF is empty.'));
-  if (documents.length === 0) return Promise.reject(new Error('There are no documents to export.'));
 
   return new Promise((resolve, reject) => {
     const worker = new ExportWorker();
@@ -52,7 +55,7 @@ export function exportZip(
     worker.onmessage = ({ data }: MessageEvent<ExportMessage>) => {
       if (data.type === 'progress') {
         try {
-          onProgress(data.progress);
+          onProgress?.(data.progress);
         } catch (error) {
           finish(() => reject(error));
         }
@@ -66,9 +69,27 @@ export function exportZip(
     // Transfer an export-only clone. The caller's source bytes remain usable.
     const transferable = bytes.slice().buffer;
     try {
-      worker.postMessage({ bytes: transferable, documents }, [transferable]);
+      worker.postMessage({ ...request, bytes: transferable }, [transferable]);
     } catch (error) {
       finish(() => reject(error));
     }
   });
+}
+
+export function exportZip(
+  bytes: Uint8Array,
+  documents: OutputDocument[],
+  onProgress: (progress: Progress) => void,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  if (documents.length === 0) return Promise.reject(new Error('There are no documents to export.'));
+  return runExportWorker(bytes, { mode: 'zip', documents }, onProgress, signal);
+}
+
+export function exportPdf(
+  bytes: Uint8Array,
+  document: OutputDocument,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  return runExportWorker(bytes, { mode: 'pdf', document }, undefined, signal);
 }

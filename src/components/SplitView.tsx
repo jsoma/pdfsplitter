@@ -1,10 +1,10 @@
-import { Check, ChevronLeft, ChevronRight, Expand, Minus, Plus, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Expand, Minus, Plus, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { LargePageView } from './LargePageView';
 import { MethodPanel } from './MethodPanel';
 import { PageImage } from './PagePreview';
 import { splitRanges } from '../matching';
-import type { PageInfo, PageMatch, SplitterController } from '../types';
+import type { PageInfo, PageMatch, SplitterController, UndoResult } from '../types';
 
 type ReviewTab = 'unsure' | 'suggested';
 type PreviewDocument = { index: number; start: number; end: number; kind: 'confirmed' | 'suggested' };
@@ -38,6 +38,7 @@ function PageTile({ controller, page, match, size, document, showConnector, onLa
     <article className={`page-tile ${status} doc-tone-${document.index % 2 ? 'indigo' : 'sand'} doc-kind-${document.kind}`} style={{ '--page-width': `${size}px` } as React.CSSProperties}>
       <span className="doc-label" aria-hidden="true">{page.number === document.start ? `Doc ${document.index}${document.kind === 'suggested' ? '?' : ''}` : '\u00a0'}</span>
       {showConnector && page.number !== document.start && <i className="doc-connector" aria-hidden="true" />}
+      {showConnector && page.number !== document.end && <i className="doc-connector right" aria-hidden="true" />}
       <button type="button" className="page-target" onClick={toggle} aria-label={`Page ${page.number}${confirmed ? ', document start' : ''}`} aria-pressed={confirmed}>
         <PageImage page={page} alt="" />
       </button>
@@ -72,18 +73,41 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
   const [tab, setTab] = useState<ReviewTab>('unsure');
   const [index, setIndex] = useState(0);
   const [referenceSeen, setReferenceSeen] = useState(false);
+  const [restoredPage, setRestoredPage] = useState<UndoResult | null>(null);
   const suggestedQueue = [...new Set(controller.matches.suggested)].sort((left, right) => left - right);
   const suggestedSet = new Set(suggestedQueue);
   const remainingUnsure = [...new Set(controller.matches.unsure)].filter((page) => !suggestedSet.has(page)).sort((left, right) => left - right);
   const reviewQueue = [...suggestedQueue, ...remainingUnsure];
-  const queue = tab === 'unsure' ? reviewQueue : suggestedQueue;
-  const safeIndex = Math.min(index, Math.max(0, queue.length - 1));
+  const activeQueue = tab === 'unsure' ? reviewQueue : suggestedQueue;
+  // Keep the undone page selected until another decision replaces this history snapshot.
+  const pendingRestoredPage = restoredPage?.confirmed === controller.confirmed && restoredPage?.rejected === controller.rejected ? restoredPage.page : null;
+  const queue = pendingRestoredPage != null && !activeQueue.includes(pendingRestoredPage) ? [pendingRestoredPage, ...activeQueue] : activeQueue;
+  const restoredIndex = pendingRestoredPage == null ? -1 : queue.indexOf(pendingRestoredPage);
+  const safeIndex = Math.min(restoredIndex >= 0 ? restoredIndex : index, Math.max(0, queue.length - 1));
   const showReference = !referenceSeen;
   const candidate = showReference ? 1 : queue[safeIndex];
   const page = controller.pages.find((item) => item.number === candidate);
   const before = controller.pages.find((item) => item.number === candidate - 1);
   const match = controller.matches.pages.find((item) => item.page === candidate);
   const candidateTone = suggestedSet.has(candidate) ? 'suggested' : 'unsure';
+  const undo = () => {
+    const page = controller.undo();
+    if (page != null) {
+      setReferenceSeen(true);
+      setTab('unsure');
+      setRestoredPage(page);
+    }
+  };
+  const answer = (label: 'start' | 'not-start') => {
+    controller.label(candidate, label);
+    setIndex(safeIndex);
+    setRestoredPage(null);
+  };
+  const move = (delta: number) => {
+    const nextPage = queue[Math.max(0, Math.min(queue.length - 1, safeIndex + delta))];
+    setRestoredPage(null);
+    setIndex(Math.max(0, activeQueue.indexOf(nextPage)));
+  };
 
   useEffect(() => {
     setIndex((value) => Math.min(value, Math.max(0, queue.length - 1)));
@@ -98,20 +122,20 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
         if (event.key === ']') setReferenceSeen(true);
         return;
       }
-      if (event.key.toLowerCase() === 'y') controller.label(candidate, 'start');
-      else if (event.key.toLowerCase() === 'n') controller.label(candidate, 'not-start');
-      else if (event.key === '[') setIndex((value) => Math.max(0, value - 1));
-      else if (event.key === ']') setIndex((value) => Math.min(queue.length - 1, value + 1));
+      if (event.key.toLowerCase() === 'y') answer('start');
+      else if (event.key.toLowerCase() === 'n') answer('not-start');
+      else if (event.key === '[') move(-1);
+      else if (event.key === ']') move(1);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [candidate, controller, queue.length, shortcutsActive, showReference]);
+  }, [candidate, controller, queue.length, shortcutsActive, showReference, safeIndex, restoredPage]);
 
   return (
     <section className={`review-card ${candidateTone} ${showReference ? 'reference' : ''}`}>
       <div className="segmented review-tabs" role="tablist" aria-label="Review queue">
-        <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); }}>Unsure <b>{reviewQueue.length}</b></button>
-        <button type="button" role="tab" aria-selected={tab === 'suggested'} onClick={() => { setTab('suggested'); setIndex(0); }}>Suggested <b>{controller.matches.suggested.length}</b></button>
+        <button type="button" role="tab" aria-selected={tab === 'unsure'} onClick={() => { setTab('unsure'); setIndex(0); setRestoredPage(null); }}>Unsure <b>{reviewQueue.length}</b></button>
+        <button type="button" role="tab" aria-selected={tab === 'suggested'} onClick={() => { setTab('suggested'); setIndex(0); setRestoredPage(null); }}>Suggested <b>{controller.matches.suggested.length}</b></button>
       </div>
       {candidate && (page || showReference) ? (
         <>
@@ -128,15 +152,16 @@ function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: Spli
             </div>
           ) : (
             <div className="review-actions">
-              <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={safeIndex === 0} aria-label="Previous review page"><ChevronLeft /></button>
-              <button className="button dark" type="button" onClick={() => controller.label(candidate, 'start')}>{tab === 'unsure' ? 'Yes, starts here' : 'Accept'}</button>
-              <button className="button secondary" type="button" onClick={() => controller.label(candidate, 'not-start')}>{tab === 'unsure' ? 'No' : 'Not a start'}</button>
-              <button className="icon-button" type="button" onClick={() => setIndex((value) => Math.min(queue.length - 1, value + 1))} disabled={safeIndex === queue.length - 1} aria-label="Skip to next review page"><ChevronRight /></button>
+              <button className="icon-button" type="button" onClick={() => move(-1)} disabled={safeIndex === 0} aria-label="Previous review page"><ChevronLeft /></button>
+              <button className="icon-button" type="button" onClick={undo} disabled={!controller.canUndo} aria-label="Undo last decision" title="Undo last decision"><Undo2 size={16} /></button>
+              <button className="button dark" type="button" onClick={() => answer('start')}>{tab === 'unsure' ? 'Yes, starts here' : 'Accept'}</button>
+              <button className="button secondary" type="button" onClick={() => answer('not-start')}>{tab === 'unsure' ? 'No' : 'Not a start'}</button>
+              <button className="icon-button" type="button" onClick={() => move(1)} disabled={safeIndex === queue.length - 1} aria-label="Skip to next review page"><ChevronRight /></button>
             </div>
           )}
           {!showReference && tab === 'suggested' && <button className="accept-link" type="button" onClick={() => controller.acceptAll()}>Accept all {controller.matches.suggested.length} suggestions</button>}
         </>
-      ) : <div className="empty-queue">No {tab} pages left.</div>}
+      ) : <div className="empty-queue">No {tab} pages left. <button className="icon-button" type="button" onClick={undo} disabled={!controller.canUndo} aria-label="Undo last decision" title="Undo last decision"><Undo2 size={16} /></button></div>}
     </section>
   );
 }

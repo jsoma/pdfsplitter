@@ -31,7 +31,7 @@ export function InspectView({ controller }: { controller: SplitterController }) 
   return (
     <main className="inspect-view">
       <aside className="inspect-sidebar">
-        <div className="section-heading"><TextSearch size={19} /><div><h2>Check the text</h2><p>We use text already embedded in the PDF. No OCR is run.</p></div></div>
+        <div className="section-heading"><TextSearch size={19} /><div><h2>Check the text</h2></div></div>
         <div className="text-availability">
           <span>Text available</span>
           <strong>{textCount} of {controller.pageCount} pages</strong>

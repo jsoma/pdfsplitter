@@ -18,7 +18,7 @@
   z-index: 10;
   flex: none;
   display: grid;
-  grid-template-columns: minmax(230px, .72fr) minmax(320px, 1.15fr) minmax(250px, .75fr);
+  grid-template-columns: minmax(360px, 1.4fr) minmax(270px, .6fr);
   gap: 12px 22px;
   align-items: center;
   padding: 18px 20px;
@@ -26,36 +26,6 @@
   border-radius: 14px;
   background: rgba(255, 253, 249, .98);
   box-shadow: 0 10px 30px rgba(52, 42, 33, .1);
-}
-
-.export-command__title {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.export-command__icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 13px;
-  color: var(--indigo);
-  background: var(--indigo-soft);
-}
-
-.export-command h1 {
-  margin: 0 0 5px;
-  font: 500 clamp(23px, 2.3vw, 31px) Georgia, serif;
-  line-height: 1.05;
-}
-
-.export-command__title p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
 }
 
 .export-template {
@@ -186,9 +156,10 @@
   background: #fffdfa;
 }
 
-.export-documents__heading h2 {
+.export-documents__heading h1 {
   margin: 0;
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 750;
 }
 
 .export-documents__heading span {
@@ -218,6 +189,21 @@
   border-radius: 9px;
   background: white;
   box-shadow: 0 2px 5px rgba(47, 39, 32, .06);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.export-document-card:hover,
+.export-document-card:focus-visible {
+  border-color: var(--indigo);
+  box-shadow: 0 5px 13px rgba(47, 39, 32, .12);
+}
+
+.export-document-card:active {
+  transform: translateY(1px);
 }
 
 .export-document-card__preview {
@@ -263,27 +249,12 @@
   color: var(--muted);
   font-size: 9px;
   font-weight: 750;
-  letter-spacing: .06em;
-  text-transform: uppercase;
 }
 
 .export-document-card__meta strong {
   display: block;
-  font: 500 18px Georgia, serif;
-}
-
-@media (max-width: 940px) {
-  .export-command {
-    grid-template-columns: minmax(220px, .8fr) minmax(280px, 1.2fr);
-  }
-
-  .export-action {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: minmax(240px, .6fr) minmax(280px, 1fr);
-    align-items: center;
-  }
-
+  font-size: 16px;
+  font-weight: 750;
 }
 
 @media (max-width: 760px) {
