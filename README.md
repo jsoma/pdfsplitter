@@ -8,7 +8,7 @@ Choose **Try a sample PDF** to explore a fictional public-works packet: 30 pages
 
 1. Drop in a PDF and check its existing text.
 2. Mark document starts manually, look for matching text, or use visual similarity to find pages that resemble your examples.
-3. Review suggestions, adjust filenames, and download all documents as a ZIP.
+3. Review suggestions, choose a filename template, and download all documents as a ZIP.
 
 Only confirmed starts create new documents. The original PDF is never changed, and exported pages retain their existing text and graphics. Visual similarity is a suggestion, not a certainty: review the proposed starts before accepting them.
 

@@ -11,6 +11,19 @@ interface ExtractedPdf {
   text: string[];
 }
 
+test('accepts a PDF dropped on the header outside the upload controls', async ({ page }) => {
+  await page.goto('/');
+  const transfer = await page.evaluateHandle((bytes) => {
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array(bytes)], 'Dropped packet.pdf', { type: 'application/pdf' }));
+    return data;
+  }, [...await createPacketPdf()]);
+  await page.locator('.app-header').dispatchEvent('drop', { dataTransfer: transfer });
+  await expect(page.getByText('Dropped packet.pdf', { exact: true })).toBeVisible();
+  await expect(page.getByText('4 of 4 pages', { exact: true })).toBeVisible();
+  await transfer.dispose();
+});
+
 async function extractZipPdfs(path: string): Promise<ExtractedPdf[]> {
   const zipBytes = await readFile(path);
   const zip = new ZipReader(new BlobReader(new Blob([zipBytes])));
@@ -88,14 +101,9 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await expect(page.getByRole('button', { name: 'Remove page 3 as start' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Continue to download' }).click();
-  const firstName = page.getByLabel('Filename for document starting page 1');
-  const secondName = page.getByLabel('Filename for document starting page 3');
-  await expect(firstName).toBeVisible();
-  await expect(secondName).toBeVisible();
-  await expect(page.getByLabel('Filename for document starting page 2')).toHaveCount(0);
-  await expect(page.getByLabel('Filename for document starting page 4')).toHaveCount(0);
-  await firstName.fill('../same.pdf');
-  await secondName.fill('same.pdf');
+  await expect(page.getByRole('heading', { name: '2 documents ready' })).toBeVisible();
+  await expect(page.locator('.export-document-card')).toHaveCount(2);
+  await page.getByLabel('Filename template').fill('../same.pdf');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download all as ZIP' }).click();

@@ -14,6 +14,6 @@ export interface SplitterController {
  open(file: File): Promise<void>; reset(): void; setPhase(phase: 'inspect' | 'split' | 'export'): void;
  setMethod(method: Method): void; setThreshold(value: number): void; setPhrases(phrases: PhraseRule[]): void;
  label(page: number, label: PageLabel): void; acceptAll(): void; undo(): void; canUndo: boolean;
- rename(start: number, filename: string): void; download(): Promise<void>; cancelExport(): void;
+ filenameTemplate: string; setFilenameTemplate(value: string): void; download(): Promise<void>; cancelExport(): void;
  render(page: number, canvas: HTMLCanvasElement, width: number, signal?: AbortSignal): Promise<void>;
 }

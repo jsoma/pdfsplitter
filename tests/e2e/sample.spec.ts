@@ -30,14 +30,22 @@ test('bundled sample demonstrates text matching and exports eight documents', as
   await expect(page.getByText('30 of 30 pages', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to find starts' }).click();
 
+  const review = page.locator('.review-card');
+  await expect(review.getByRole('button', { name: 'View page 1 large', exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Continue', exact: true }).click();
+  await expect(review.getByRole('button', { name: 'View page 4 large', exact: true })).toBeVisible();
+  await review.getByRole('button', { name: 'Skip to next review page' }).click();
+  await expect(review.getByRole('button', { name: 'View page 9 large', exact: true })).toBeVisible();
+
   await page.getByRole('tab', { name: 'Text' }).click();
   await page.getByLabel('Start phrase').fill('PROCUREMENT REQUEST');
   await page.getByRole('button', { name: 'Add phrase' }).click();
-  await expect(page.getByText('1 marked · 7 suggested · 0 unsure', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 marked · 7 to review (7 suggested)', { exact: true })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Unsure 7', exact: true })).toBeVisible();
 
   const footer = page.locator('.app-footer');
   await footer.getByRole('button', { name: 'Accept all 7 suggestions' }).click();
-  await expect(page.getByText('8 marked · 0 suggested · 0 unsure', { exact: true })).toBeVisible();
+  await expect(page.getByText('8 marked · 0 to review (0 suggested)', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to download' }).click();
   await expect(page.getByRole('heading', { name: '8 documents ready' })).toBeVisible();
 

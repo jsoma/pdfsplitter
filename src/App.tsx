@@ -44,7 +44,7 @@ export default function App() {
           </div>
           <div className="footer-status">
             {controller.phase === 'inspect' && <span>{controller.progress ? 'You can continue while remaining pages prepare.' : 'Files stay in your browser.'}</span>}
-            {controller.phase === 'split' && <span>{controller.confirmed.length} marked · {controller.matches.suggested.length} suggested · {controller.matches.unsure.length} unsure</span>}
+            {controller.phase === 'split' && <span>{controller.confirmed.length} marked · {controller.matches.suggested.length + controller.matches.unsure.length} to review ({controller.matches.suggested.length} suggested)</span>}
             {controller.phase === 'export' && <span>{controller.documents.length} documents · {controller.pageCount} pages</span>}
           </div>
           <div>
@@ -53,6 +53,12 @@ export default function App() {
           </div>
         </footer>
       )}
+      <footer className="site-credit">
+        {(controller.phase === 'upload' || controller.phase === 'export') && <a href="https://frisket.dev/">Frisket</a>}
+        <a href="https://jonathansoma.com/">Jonathan Soma</a>
+        <a href="mailto:jonathan.soma@gmail.com">jonathan.soma@gmail.com</a>
+        <a href="https://twitter.com/dangerscarf">@dangerscarf</a>
+      </footer>
     </div>
   );
 }

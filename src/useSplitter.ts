@@ -6,6 +6,7 @@ import type { Method, PageInfo, PageLabel, PhraseRule, Progress, SplitterControl
 
 type Decisions = { confirmed: number[]; rejected: number[] };
 const initialDecisions = (): Decisions => ({ confirmed: [1], rejected: [] });
+const defaultFilenameTemplate = '{name}_{index}_pages_{start}-{end}.pdf';
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 export function useSplitter(): SplitterController {
@@ -27,7 +28,7 @@ export function useSplitter(): SplitterController {
   const [method, setMethod] = useState<Method>('visual');
   const [threshold, setThreshold] = useState(80);
   const [phrases, setPhrases] = useState<PhraseRule[]>([]);
-  const [names, setNames] = useState<Record<number, string>>({});
+  const [filenameTemplate, setFilenameTemplate] = useState(defaultFilenameTemplate);
 
   const dispose = useCallback(() => {
     preparation.current?.abort();
@@ -45,7 +46,7 @@ export function useSplitter(): SplitterController {
     setPhase('upload'); setFilename(''); setPageCount(0); setPages([]);
     setPreparingProgress(null); setExportProgress(null); setError(null);
     setLoading(false); setExporting(false); setHistory([initialDecisions()]);
-    setMethod('visual'); setThreshold(80); setPhrases([]); setNames({});
+    setMethod('visual'); setThreshold(80); setPhrases([]); setFilenameTemplate(defaultFilenameTemplate);
   }, [dispose]);
 
   const open = useCallback(async (file: File) => {
@@ -73,9 +74,16 @@ export function useSplitter(): SplitterController {
 
   const matches = useMemo(() => pageCount ? matchPages({ pages, pageCount, confirmed, rejected, threshold, phrases, method }) : { pages: [], suggested: [], unsure: [], kinds: [] },
     [pages, pageCount, confirmed, rejected, threshold, phrases, method]);
-  const documents = useMemo(() => (pageCount ? splitRanges(pageCount, confirmed, filename) : []).map(document => ({
-    ...document, filename: names[document.start] ?? document.filename,
-  })), [pageCount, confirmed, filename, names]);
+  const documents = useMemo(() => (pageCount ? splitRanges(pageCount, confirmed, filename) : []).map((document, index) => {
+    const values = {
+      name: filename.replace(/\.pdf$/i, ''),
+      index: String(index + 1).padStart(3, '0'),
+      start: String(document.start).padStart(3, '0'),
+      end: String(document.end).padStart(3, '0'),
+    };
+    return { ...document, filename: (filenameTemplate || defaultFilenameTemplate).replace(/\{(name|index|start|end)\}/g,
+      (_, key: keyof typeof values) => values[key]) };
+  }), [pageCount, confirmed, filename, filenameTemplate]);
 
   const label = useCallback((page: number, value: PageLabel) => {
     if (page <= 1 || page > pageCount) return;
@@ -96,7 +104,6 @@ export function useSplitter(): SplitterController {
     });
   }, [matches.suggested]);
   const undo = useCallback(() => setHistory(previous => previous.length > 1 ? previous.slice(0, -1) : previous), []);
-  const rename = useCallback((start: number, name: string) => setNames(previous => ({ ...previous, [start]: name })), []);
   const cancelExport = useCallback(() => exportingJob.current?.abort(), []);
 
   const download = useCallback(async () => {
@@ -135,5 +142,5 @@ export function useSplitter(): SplitterController {
 
   return { phase, filename, pageCount, pages, progress: exporting ? exportProgress : preparingProgress, error, loading, exporting,
     confirmed, rejected, method, threshold, phrases, matches, documents, open, reset, setPhase, setMethod,
-    setThreshold, setPhrases, label, acceptAll, undo, canUndo: history.length > 1, rename, download, cancelExport, render };
+    setThreshold, setPhrases, label, acceptAll, undo, canUndo: history.length > 1, filenameTemplate, setFilenameTemplate, download, cancelExport, render };
 }
