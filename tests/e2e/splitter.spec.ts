@@ -58,13 +58,16 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await page.goto('/');
   unexpectedDocumentRequests.length = 0;
 
-  await page.getByLabel('PDF file').setInputFiles({
+  await page.getByLabel('PDF file', { exact: true }).setInputFiles({
     name: 'meeting packets.pdf',
     mimeType: 'application/pdf',
     buffer: await createPacketPdf(),
   });
 
+  await expect(page.getByText('4 of 4 pages', { exact: true })).toBeVisible();
   await expect(page.getByText(fixturePageText[0], { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Refresh sample' }).click();
+  await page.getByRole('button', { name: 'Inspect page 4' }).click();
   await expect(page.getByText(fixturePageText[3], { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to find starts' }).click();
 
@@ -72,7 +75,7 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await page.getByLabel('Start phrase').fill('detail page');
   await page.getByRole('button', { name: 'Add phrase' }).click();
 
-  const zoom = page.getByRole('button', { name: 'View page 2 large' });
+  const zoom = page.locator('.page-grid').getByRole('button', { name: 'View page 2 large' });
   await zoom.click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
