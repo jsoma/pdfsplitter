@@ -65,12 +65,11 @@ export function ExportView({ controller }: { controller: SplitterController }) {
           )}
         </div>
 
-        <p className="export-command__note">Your original PDF stays unchanged.</p>
       </section>
 
       <section className="export-documents" aria-labelledby="export-documents-title">
         <div className="export-documents__heading">
-          <h2 id="export-documents-title">Documents in your ZIP</h2>
+          <h2 id="export-documents-title">Documents</h2>
           <span>First page of each document</span>
         </div>
         <div className="export-document-grid" role="list">

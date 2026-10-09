@@ -103,7 +103,6 @@ export function UploadView({ controller }: { controller: SplitterController }) {
         </div>
         {sampleError && <p className="sample-error" role="alert">{sampleError}</p>}
         <p className="privacy">Files stay in your browser.</p>
-        <a className="frisket-link" href="https://frisket.dev/">Frisket</a>
       </section>
     </main>
   );

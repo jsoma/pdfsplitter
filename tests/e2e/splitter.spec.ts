@@ -101,14 +101,9 @@ test('splits a local PDF into safe, downloadable PDFs without uploading it', asy
   await expect(page.getByRole('button', { name: 'Remove page 3 as start' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Continue to download' }).click();
-  const firstName = page.getByLabel('Filename for document starting page 1');
-  const secondName = page.getByLabel('Filename for document starting page 3');
-  await expect(firstName).toBeVisible();
-  await expect(secondName).toBeVisible();
-  await expect(page.getByLabel('Filename for document starting page 2')).toHaveCount(0);
-  await expect(page.getByLabel('Filename for document starting page 4')).toHaveCount(0);
-  await firstName.fill('../same.pdf');
-  await secondName.fill('same.pdf');
+  await expect(page.getByRole('heading', { name: '2 documents ready' })).toBeVisible();
+  await expect(page.locator('.export-document-card')).toHaveCount(2);
+  await page.getByLabel('Filename template').fill('../same.pdf');
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download all as ZIP' }).click();
