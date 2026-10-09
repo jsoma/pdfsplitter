@@ -12,6 +12,7 @@ function statusFor(controller: SplitterController, page: number, match?: PageMat
 }
 
 export function LargePageView({ controller, page, onChange, onClose }: { controller: SplitterController; page: number; onChange: (page: number) => void; onClose: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
   const match = controller.matches.pages.find((item) => item.page === page);
@@ -21,8 +22,12 @@ export function LargePageView({ controller, page, onChange, onClose }: { control
 
   useEffect(() => {
     restoreFocus.current = document.activeElement as HTMLElement;
+    dialogRef.current?.showModal();
     closeRef.current?.focus();
-    return () => restoreFocus.current?.focus();
+    return () => {
+      if (dialogRef.current?.open) dialogRef.current.close();
+      restoreFocus.current?.focus();
+    };
   }, []);
 
   useEffect(() => {
@@ -39,8 +44,16 @@ export function LargePageView({ controller, page, onChange, onClose }: { control
   }, [candidate, confirmed, controller, onChange, onClose, page]);
 
   return (
-    <div className="large-scrim" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="large-dialog" role="dialog" aria-modal="true" aria-labelledby="large-title">
+    <dialog
+      ref={dialogRef}
+      className="large-dialog"
+      aria-labelledby="large-title"
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onMouseDown={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+      }}
+    >
         <header><div><h2 id="large-title">Page {page}</h2><span className={`status-pill ${status.tone}`}>{status.label}</span></div><button ref={closeRef} type="button" className="icon-button" onClick={onClose} aria-label="Close large page view"><X size={20} /></button></header>
         <div className="large-body">
           <button type="button" className="page-arrow" onClick={() => onChange(Math.max(1, page - 1))} disabled={page === 1} aria-label="Previous page"><ChevronLeft /></button>
@@ -55,7 +68,6 @@ export function LargePageView({ controller, page, onChange, onClose }: { control
           </div>
           <span>← → pages · Esc close</span>
         </footer>
-      </section>
-    </div>
+    </dialog>
   );
 }

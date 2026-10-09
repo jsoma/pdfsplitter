@@ -42,7 +42,7 @@ function MiniMap({ controller }: { controller: SplitterController }) {
   return (
     <aside className="minimap" aria-label="Packet overview">
       <div className="minimap-grid">
-        {controller.pages.slice(0, 180).map((page) => {
+        {controller.pages.map((page) => {
           const tone = controller.confirmed.includes(page.number) ? 'confirmed' : controller.matches.suggested.includes(page.number) ? 'suggested' : controller.matches.unsure.includes(page.number) ? 'unsure' : '';
           return <i key={page.number} className={tone} />;
         })}
@@ -52,7 +52,7 @@ function MiniMap({ controller }: { controller: SplitterController }) {
   );
 }
 
-function ReviewCard({ controller, onLarge }: { controller: SplitterController; onLarge: (page: number) => void }) {
+function ReviewCard({ controller, onLarge, shortcutsActive }: { controller: SplitterController; onLarge: (page: number) => void; shortcutsActive: boolean }) {
   const [tab, setTab] = useState<ReviewTab>('unsure');
   const [index, setIndex] = useState(0);
   const queue = tab === 'unsure' ? controller.matches.unsure : controller.matches.suggested;
@@ -67,6 +67,7 @@ function ReviewCard({ controller, onLarge }: { controller: SplitterController; o
   }, [queue.length]);
 
   useEffect(() => {
+    if (!shortcutsActive) return;
     const handleKey = (event: KeyboardEvent) => {
       if (!candidate || event.repeat || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
@@ -77,7 +78,7 @@ function ReviewCard({ controller, onLarge }: { controller: SplitterController; o
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [candidate, controller, queue.length]);
+  }, [candidate, controller, queue.length, shortcutsActive]);
 
   return (
     <section className={`review-card ${tab}`}>
@@ -132,7 +133,7 @@ export function SplitView({ controller }: { controller: SplitterController }) {
           <MiniMap controller={controller} />
         </div>
       </section>
-      <aside className="split-sidebar"><MethodPanel controller={controller} /><ReviewCard controller={controller} onLarge={setLargePage} /></aside>
+      <aside className="split-sidebar"><MethodPanel controller={controller} /><ReviewCard controller={controller} onLarge={setLargePage} shortcutsActive={largePage == null} /></aside>
       {largePage != null && <LargePageView controller={controller} page={largePage} onChange={setLargePage} onClose={() => setLargePage(null)} />}
     </main>
   );

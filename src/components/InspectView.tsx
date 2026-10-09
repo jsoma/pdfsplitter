@@ -1,22 +1,31 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, TextSearch } from 'lucide-react';
 import { PageImage } from './PagePreview';
-import type { PageInfo, SplitterController } from '../types';
+import type { SplitterController } from '../types';
 
-function pickSamples(pages: PageInfo[], seed: number) {
-  if (pages.length <= 3) return pages;
-  const positions = [0.12, 0.5, 0.86].map((position, index) => {
-    const wobble = ((seed * (index + 3) * 17) % 19) / 100 - 0.09;
-    return Math.max(0, Math.min(pages.length - 1, Math.round((pages.length - 1) * (position + wobble))));
-  });
-  return positions.map((position) => pages[position]);
+function pickSampleNumbers(pageCount: number, seed: number) {
+  if (pageCount <= 3) return Array.from({ length: pageCount }, (_, index) => index + 1);
+  if (seed === 0) return [1, Math.ceil(pageCount / 2), pageCount];
+
+  const numbers: number[] = [];
+  let value = seed * 7919;
+  let attempts = 0;
+  while (numbers.length < 3 && attempts < pageCount * 3) {
+    value = (value * 48271) % 2147483647;
+    const number = (value % pageCount) + 1;
+    if (!numbers.includes(number)) numbers.push(number);
+    attempts += 1;
+  }
+  for (let number = 1; numbers.length < 3 && number <= pageCount; number += 1) if (!numbers.includes(number)) numbers.push(number);
+  return numbers.sort((left, right) => left - right);
 }
 
 export function InspectView({ controller }: { controller: SplitterController }) {
   const [seed, setSeed] = useState(0);
-  const [selected, setSelected] = useState(0);
-  const samples = useMemo(() => pickSamples(controller.pages, seed), [controller.pages, seed]);
-  const page = samples[Math.min(selected, Math.max(0, samples.length - 1))];
+  const [selected, setSelected] = useState(1);
+  const sampleNumbers = useMemo(() => pickSampleNumbers(controller.pageCount, seed), [controller.pageCount, seed]);
+  const samples = useMemo(() => sampleNumbers.map((number) => ({ number, page: controller.pages.find((item) => item.number === number) })), [controller.pages, sampleNumbers]);
+  const page = controller.pages.find((item) => item.number === selected);
   const textCount = controller.pages.filter((item) => item.text.trim()).length;
 
   return (
@@ -30,12 +39,17 @@ export function InspectView({ controller }: { controller: SplitterController }) 
         </div>
         <div className="sample-heading">
           <h3>Sample pages</h3>
-          <button className="text-button" type="button" onClick={() => { setSeed((value) => value + 1); setSelected(0); }}><RefreshCw size={14} /> Refresh sample</button>
+          <button className="text-button" type="button" onClick={() => {
+            const nextSeed = seed + 1;
+            const nextNumbers = pickSampleNumbers(controller.pageCount, nextSeed);
+            setSeed(nextSeed);
+            setSelected(nextNumbers[0] ?? 1);
+          }}><RefreshCw size={14} /> Refresh sample</button>
         </div>
         <div className="sample-list">
-          {samples.map((item, index) => (
-            <button key={`${item.number}-${index}`} className={item.number === page?.number ? 'selected' : ''} type="button" onClick={() => setSelected(index)} aria-label={`Inspect page ${item.number}`}>
-              <PageImage page={item} alt="" />
+          {samples.map((item) => (
+            <button key={item.number} className={item.number === selected ? 'selected' : ''} type="button" onClick={() => setSelected(item.number)} aria-label={`Inspect page ${item.number}`}>
+              <PageImage page={item.page} alt="" />
               <span>Page {item.number}</span>
             </button>
           ))}
